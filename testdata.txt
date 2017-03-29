@@ -1,0 +1,24 @@
+Gray
+Lambda 0.4 (150 epochs)
+Accuracy train: 0.887768
+Accuracy test: 0.683417
+Lambda 0.04 (150 epochs)
+Accuracy train: 0.857503
+Accuracy test: 0.663317
+Lambda 0.004 (150 epochs)
+Accuracy train: 0.994956
+Accuracy test: 0.79397
+Color
+Lambda 0.004 (15 epochs)
+Accuracy train: 0.757576
+Accuracy test: 0.666667
+Lambda 0.004 (25 epochs)
+Accuracy train: 0.852273
+Accuracy test: 0.833333
+Lambda 0.004 (35 epochs)
+Accuracy train: 0.833333
+Accuracy test: 0.808081
+Lambda 0.004 (45 epochs)
+Accuracy train: 0.912879
+Accuracy test: 0.878788
+Lambda 0.0004 (35 epochs)
