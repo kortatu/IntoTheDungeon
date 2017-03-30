@@ -27,4 +27,9 @@ Accuracy test: 0.893939
 Lambda 0.0004 (60 epochs)
 Accuracy train: 0.957071
 Accuracy test: 0.888889
-
+Lambda 0.001 (200 epochs)
+Accuracy train: 0.989899
+Accuracy test: 0.878788
+Lambda 0.004 (200 epochs)
+Accuracy train: 0.996212
+Accuracy test: 0.944444

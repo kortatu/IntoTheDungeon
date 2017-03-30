@@ -25,13 +25,14 @@ trainXs, trainYs, testXs, testYs = ds.create_data_sets(filename)
 # images, labels = tf.train.shuffle_batch([ALLX, yLabs], batch_size=trainingSamples,
 #                                         capacity=trainingSamples, min_after_dequeue=100)
 
+gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.8) #0.333
 # Parameters
 #learning_rate = 0.001
 learning_rate = 0.001
 #miLambda = 0.001
-miLambda = 0.0004
+miLambda = 0.004
 #training_epochs = 30
-training_epochs = 45
+training_epochs = 200
 batch_size = 150
 display_step = 1
 train_accuracy_step = 5
@@ -87,7 +88,7 @@ init = tf.global_variables_initializer()
 # Launch the graph
 saver = tf.train.Saver()
 model_path = "/tmp/epicmodel.ckpt"
-with tf.Session() as sess:
+with tf.Session(config=tf.ConfigProto(log_device_placement=True, gpu_options=gpu_options)) as sess:
     sess.run(init)
 
     # Training cycle
