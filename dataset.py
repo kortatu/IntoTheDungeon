@@ -1,9 +1,9 @@
 import numpy
 import scipy.io
-import scipy.misc
+from scipy import misc
+# import scipy.misc
 import numpy as np
 import os
-from tensorflow.contrib.learn.python.learn.datasets import base
 from tensorflow.python.framework import dtypes
 
 class DataSet(object):
@@ -33,10 +33,10 @@ class DataSet(object):
             assert images.shape[3] == 1
             images = images.reshape(images.shape[0],
                                     images.shape[1] * images.shape[2])
-        if dtype == dtypes.float32:
+        #if dtype == dtypes.float32:
             # Convert from [0, 255] -> [0.0, 1.0].
-            images = images.astype(numpy.float32)
-            images = numpy.multiply(images, 1.0 / 255.0)
+        #    images = images.astype(numpy.float32)
+        #    images = numpy.multiply(images, 1.0 / 255.0)
         self._images = images
         self._labels = labels
         self._epochs_completed = 0
@@ -98,7 +98,7 @@ def load_dirs(dir_name):
                 for filename in filenames:
                     if filename.endswith("jpeg"):
                         full_file_name = os.path.join(dirname, filename)
-                        train_image = scipy.misc.imread(full_file_name)
+                        train_image = misc.imread(full_file_name)
                         shape = np.asarray(train_image).shape
                         if shape[0] == 180 and shape[1] == 240:
                             images.append(train_image)
