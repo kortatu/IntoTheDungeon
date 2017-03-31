@@ -25,8 +25,7 @@ trainXs, trainYs, testXs, testYs = ds.shuffle_and_slice(images, labels)
 # filename = 'megaImages_gray_s.mat'
 # filename = 'megaImages.mat'
 # trainXs, trainYs, testXs, testYs = ds.create_data_sets(filename)
-
-
+dataset = ds.DataSet(trainXs, trainYs, reshape=False)
 # images, labels = tf.train.shuffle_batch([ALLX, yLabs], batch_size=trainingSamples,
 #                                         capacity=trainingSamples, min_after_dequeue=100)
 
@@ -35,10 +34,10 @@ gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.8) #0.333
 #learning_rate = 0.001
 learning_rate = 0.001
 #miLambda = 0.001
-miLambda = 0.004
+miLambda = 0.01
 #training_epochs = 30
 training_epochs = 200
-batch_size = 150
+batch_size = 100
 display_step = 1
 train_accuracy_step = 5
 test_accuracy_step = 5
@@ -96,37 +95,24 @@ model_path = "/tmp/epicmodel.ckpt"
 with tf.Session(config=tf.ConfigProto(log_device_placement=True, gpu_options=gpu_options)) as sess:
     sess.run(init)
 
-    # Training cycle
-    # for epoch in range(training_epochs):
-    #     avg_cost = 0.
-    #     total_batch = int(mnist.train.num_examples/batch_size)
-    #     # Loop over all batches
-    #     for i in range(total_batch):
-    #         batch_x, batch_y = mnist.train.next_batch(batch_size)
-    #         # Run optimization op (backprop) and cost op (to get loss value)
-    #         _, c = sess.run([optimizer, cost], feed_dict={x: batch_x,
-    #                                                       y: batch_y})
-    #         # Compute average loss
-    #         avg_cost += c / total_batch
-    #     # Display logs per epoch step
-    #     if epoch % display_step == 0:
-    #         print("Epoch:", '%04d' % (epoch+1), "cost=", \
-    #             "{:.9f}".format(avg_cost))
-    # print("Optimization Finished!")
-
-    # train_batch, train_labels = sess.run([images, labels])
-
     correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
     accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
     # print("Shuffled? " , train_batch)
     print("Starting optimization")
     for epoch in range(training_epochs):
         avg_cost = 0.
-        _, c = sess.run([optimizer, cost], feed_dict={x: trainXs, y: trainYs})
+        total_batch = trainXs.shape[0] / batch_size
+        # Loop over batches
+        for i in range(total_batch):
+            batch_x, batch_y = dataset.next_batch(batch_size)
+            _, c = sess.run([optimizer, cost], feed_dict={x: batch_x, y: batch_y})
+            print("Epoch:", '%04d' % (epoch +1 ),"Batch:", '%04d' % (i +1 ), "cost=", "{:.9f}".format(c))
+            avg_cost += c / total_batch
+        # _, c = sess.run([optimizer, cost], feed_dict={x: trainXs, y: trainYs})
         if (epoch + 1) % display_step == 0:
-            print("Epoch:", '%04d' % (epoch +1 ), "cost=", "{:.9f}".format(c))
-        if (epoch +1 ) % train_accuracy_step == 0:
-            print("Epoch:", '%04d' % (epoch +1 ), "Accuracy train:", accuracy.eval({x: trainXs, y: trainYs}))
+            print("Epoch:", '%04d' % (epoch +1 ), "Average cost=", "{:.9f}".format(avg_cost))
+        # if (epoch +1 ) % train_accuracy_step == 0:
+        #     print("Epoch:", '%04d' % (epoch +1 ), "Accuracy train:", accuracy.eval({x: trainXs, y: trainYs}))
         if (epoch +1 ) % test_accuracy_step == 0:
             print("Epoch:", '%04d' % (epoch +1 ), "Accuracy test:", accuracy.eval({x: testXs, y: testYs}))
 
