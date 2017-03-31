@@ -18,9 +18,14 @@ import tensorflow as tf
 import numpy as np
 import dataset as ds
 
+
+images, labels = ds.load_dirs("trainImages")
+trainXs, trainYs, testXs, testYs = ds.shuffle_and_slice(images, labels)
+
 # filename = 'megaImages_gray_s.mat'
-filename = 'megaImages.mat'
-trainXs, trainYs, testXs, testYs = ds.create_data_sets(filename)
+# filename = 'megaImages.mat'
+# trainXs, trainYs, testXs, testYs = ds.create_data_sets(filename)
+
 
 # images, labels = tf.train.shuffle_batch([ALLX, yLabs], batch_size=trainingSamples,
 #                                         capacity=trainingSamples, min_after_dequeue=100)
@@ -77,7 +82,7 @@ biases = {
 pred = multilayer_perceptron(x, weights, biases)
 regul = la * (tf.nn.l2_loss(weights['h1']) + tf.nn.l2_loss(weights['h2']) + tf.nn.l2_loss(weights['out']))
 
-    # (la / n_input + n_hidden_1 + n_hidden_2) * tf.reduce_sum(tf.square(weights['h1'])) + tf.reduce_sum(tf.square(weights['h2'])) + tf.square(tf.reduce_sum(weights['out']))
+# (la / n_input + n_hidden_1 + n_hidden_2) * tf.reduce_sum(tf.square(weights['h1'])) + tf.reduce_sum(tf.square(weights['h2'])) + tf.square(tf.reduce_sum(weights['out']))
 # Define loss and optimizer
 cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=y)) + regul
 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)

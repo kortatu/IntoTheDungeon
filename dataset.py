@@ -1,6 +1,8 @@
 import numpy
 import scipy.io
+import scipy.misc
 import numpy as np
+import os
 from tensorflow.contrib.learn.python.learn.datasets import base
 from tensorflow.python.framework import dtypes
 
@@ -83,6 +85,62 @@ class DataSet(object):
             assert batch_size <= self._num_examples
         end = self._index_in_epoch
         return self._images[start:end], self._labels[start:end]
+
+def load_dirs(dir_name):
+    images = []
+    labels = []
+    for dirname, dirnames, filenames in os.walk(dir_name):
+        print("Dirname", dirname)
+        if "/" in dirname:
+            label = dirname[dirname.index("/") + 1:]
+            print("Label", label)
+            if label not in ["sync", "advertising"]:  #Currently ignoring sync, advertising
+                for filename in filenames:
+                    if filename.endswith("jpeg"):
+                        full_file_name = os.path.join(dirname, filename)
+                        train_image = scipy.misc.imread(full_file_name)
+                        shape = np.asarray(train_image).shape
+                        if shape[0] == 180 and shape[1] == 240:
+                            images.append(train_image)
+                            cat = convert(label)
+                            labels.append(cat)
+                        else:
+                            print("Incorrect shape", shape)
+                        # print(full_file_name, ":", label,  cat)
+    images = np.asarray(images, dtype=np.float32)
+    labels = np.asarray(labels)
+    print("Images shape", images.shape)
+    images = np.reshape(images, [images.shape[0],-1])
+    images = images / 255
+    print("Images shape", images.shape)
+    print(images[0])
+    labels = np.reshape(labels, labels.shape[0])
+    labels = np.eye(7)[labels]
+    print("Labels shape", labels.shape)
+    return images, labels
+
+
+def shuffle_and_slice(images, labels, train_percentage=0.8):
+    total_samples = images.shape[0]
+    perm = numpy.arange(total_samples)
+    numpy.random.shuffle(perm)
+    shuffledXs = images[perm]
+    shuffledYs = labels[perm]
+    num_training_samples = int(total_samples * train_percentage)
+    print("Number of training", num_training_samples)
+    trainXs = shuffledXs[:num_training_samples]
+    trainYs = shuffledYs[:num_training_samples]
+    print("Number of test", total_samples - num_training_samples)
+    testXs = shuffledXs[num_training_samples:]
+    testYs = shuffledYs[num_training_samples:]
+    print("Shape of test", testXs.shape)
+    return trainXs, trainYs, testXs, testYs
+
+
+def convert(label):
+    categories = {'ski':0, 'epic':1, 'musical':2, 'extreme':3, 'pool':4, 'trump':5, 'nosignal':6}
+    return categories[label]
+
 
 def create_data_sets(fileName):
     """Create the data set for Into The Dungeon"""
