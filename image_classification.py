@@ -10,14 +10,11 @@ Project: https://github.com/aymericdamien/TensorFlow-Examples/
 from __future__ import print_function
 
 # Import MNIST data
-#from tensorflow.examples.tutorials.mnist import input_data
-#mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
-
-import scipy.io
+# from tensorflow.examples.tutorials.mnist import input_data
+# mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
 import tensorflow as tf
-import numpy as np
 import dataset as ds
-
+import perceptron as perceptron
 
 images, labels = ds.load_dirs("trainImages")
 trainXs, trainYs, testXs, testYs = ds.shuffle_and_slice(images, labels)
@@ -29,9 +26,9 @@ dataset = ds.DataSet(trainXs, trainYs, reshape=False)
 # images, labels = tf.train.shuffle_batch([ALLX, yLabs], batch_size=trainingSamples,
 #                                         capacity=trainingSamples, min_after_dequeue=100)
 
-gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.8) #0.333
+gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.8)  # 0.333
 # Parameters
-#learning_rate = 0.001
+# learning_rate = 0.001
 learning_rate = 0.001
 #miLambda = 0.001
 miLambda = 0.04
@@ -53,37 +50,14 @@ x = tf.placeholder("float", [None, n_input])
 y = tf.placeholder("float", [None, n_classes])
 la = tf.constant(miLambda, "float", )
 
-# Create model
-def multilayer_perceptron(x, weights, biases):
-    # Hidden layer with RELU activation
-    layer_1 = tf.add(tf.matmul(x, weights['h1']), biases['b1'])
-    layer_1 = tf.nn.relu(layer_1)
-    # Hidden layer with RELU activation
-    layer_2 = tf.add(tf.matmul(layer_1, weights['h2']), biases['b2'])
-    layer_2 = tf.nn.relu(layer_2)
-    # Output layer with linear activation
-    out_layer = tf.matmul(layer_2, weights['out']) + biases['out']
-    return out_layer
-
-# Store layers weight & bias
-weights = {
-    'h1': tf.Variable(tf.random_normal([n_input, n_hidden_1])),
-    'h2': tf.Variable(tf.random_normal([n_hidden_1, n_hidden_2])),
-    'out': tf.Variable(tf.random_normal([n_hidden_2, n_classes]))
-}
-biases = {
-    'b1': tf.Variable(tf.random_normal([n_hidden_1])),
-    'b2': tf.Variable(tf.random_normal([n_hidden_2])),
-    'out': tf.Variable(tf.random_normal([n_classes]))
-}
-
 # Construct model
-pred = multilayer_perceptron(x, weights, biases)
+weights, biases = perceptron.getVariables(n_input, n_classes)
+pred = perceptron.multilayer_perceptron(x, weights, biases)
 regul = la * (tf.nn.l2_loss(weights['h1']) + tf.nn.l2_loss(weights['h2']) + tf.nn.l2_loss(weights['out']))
 
-# (la / n_input + n_hidden_1 + n_hidden_2) * tf.reduce_sum(tf.square(weights['h1'])) + tf.reduce_sum(tf.square(weights['h2'])) + tf.square(tf.reduce_sum(weights['out']))
 # Define loss and optimizer
-cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=y)) + regul
+sce = tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=y)
+cost = tf.reduce_mean(sce) + regul
 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 
 # Initializing the variables
@@ -106,15 +80,12 @@ with tf.Session(config=tf.ConfigProto(log_device_placement=True, gpu_options=gpu
         for i in range(total_batch):
             batch_x, batch_y = dataset.next_batch(batch_size)
             _, c = sess.run([optimizer, cost], feed_dict={x: batch_x, y: batch_y})
-            print("Epoch:", '%04d' % (epoch +1 ),"Batch:", '%04d' % (i +1 ), "cost=", "{:.9f}".format(c))
+            print("Epoch:", '%04d' % (epoch + 1), "Batch:", '%04d' % (i + 1), "cost=", "{:.9f}".format(c))
             avg_cost += c / total_batch
-        # _, c = sess.run([optimizer, cost], feed_dict={x: trainXs, y: trainYs})
         if (epoch + 1) % display_step == 0:
-            print("Epoch:", '%04d' % (epoch +1 ), "Average cost=", "{:.9f}".format(avg_cost))
-        # if (epoch +1 ) % train_accuracy_step == 0:
-        #     print("Epoch:", '%04d' % (epoch +1 ), "Accuracy train:", accuracy.eval({x: trainXs, y: trainYs}))
-        if (epoch +1 ) % test_accuracy_step == 0:
-            print("Epoch:", '%04d' % (epoch +1 ), "Accuracy test:", accuracy.eval({x: testXs, y: testYs}))
+            print("Epoch:", '%04d' % (epoch + 1), "Average cost=", "{:.9f}".format(avg_cost))
+        if (epoch + 1) % test_accuracy_step == 0:
+            print("Epoch:", '%04d' % (epoch + 1), "Accuracy test:", accuracy.eval({x: testXs, y: testYs}))
 
     # Test model
     # correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))

@@ -1,12 +1,13 @@
 from flask import Flask
 from flask import request
 from flask import jsonify
-
+import sys
+sys.path.append('../common')
 import tensorflow as tf
 import perceptron as perceptron
 import urllib
 import uuid
-import numpy
+import dataset as dataset
 
 app = Flask(__name__, static_url_path='')
 
@@ -17,18 +18,8 @@ def generate_filepath():
     return "tmp/" + unique_filename + ".jpg"
 
 def classify_image(image_path):
-    with tf.gfile.FastGFile(image_path, 'r') as f:
-        image_data = f.read()
-    imageInput = tf.image.decode_jpeg(image_data)
-    print("Image decoded", imageInput)
-    imageInput = tf.cast(imageInput, tf.float32)
-    print("Image input 1-255", imageInput)
-    imageInput = numpy.multiply(imageInput, 1.0 / 255.0)
-    shape = tf.shape(imageInput)
-    print("Shape", shape)
-    imageInput = tf.reshape(imageInput, [shape[0] * shape[1] * shape[2]])
-
-    inputToEvaluate = [imageInput.eval(session = tf_session)]
+    imageInput = dataset.load_image(image_path)
+    inputToEvaluate = [imageInput]
     print("Input to evaluate: " , inputToEvaluate)
     predictions = pred.eval({x: inputToEvaluate}, session = tf_session)
     print("Pred: ", predictions)
@@ -67,14 +58,14 @@ pred = perceptron.multilayer_perceptron(x, weights, biases)
 
 # Initializing the variables
 init = tf.global_variables_initializer()
-model_path = "../saves/truecolor/epicmodel.ckpt"
+model_path = "../saves/epicmodel.ckpt"
 saver = tf.train.Saver()
 tf_session = tf.Session()
 tf_session.run(init)
 
 saver.restore(tf_session, model_path)
 evaluator = tf.argmax(pred, 1)
-topPred = tf.nn.top_k(pred, 3)
+topPred = tf.nn.top_k(pred, 1)
 
 if __name__ == "__main__":
-    app.run()
+    app.run(port=5001)
