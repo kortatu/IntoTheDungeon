@@ -34,10 +34,10 @@ gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.8) #0.333
 #learning_rate = 0.001
 learning_rate = 0.001
 #miLambda = 0.001
-miLambda = 0.01
+miLambda = 0.04
 #training_epochs = 30
-training_epochs = 200
-batch_size = 100
+training_epochs = 275
+batch_size = 75
 display_step = 1
 train_accuracy_step = 5
 test_accuracy_step = 5
@@ -46,7 +46,7 @@ test_accuracy_step = 5
 n_hidden_1 = 2000          # 1st layer number of features
 n_hidden_2 = 256           # 2nd layer number of features
 n_input = trainXs.shape[1]    # MNIST data input (img shape: 28*28)
-n_classes = 7              # MNIST total classes (0-9 digits)
+n_classes = trainYs.shape[1]  # MNIST total classes (0-9 digits)
 
 # tf Graph input
 x = tf.placeholder("float", [None, n_input])

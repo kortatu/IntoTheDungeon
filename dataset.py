@@ -1,7 +1,6 @@
 import numpy
 import scipy.io
 from scipy import misc
-# import scipy.misc
 import numpy as np
 import os
 from tensorflow.python.framework import dtypes
@@ -94,18 +93,18 @@ def load_dirs(dir_name):
         if "/" in dirname:
             label = dirname[dirname.index("/") + 1:]
             print("Label", label)
-            if label not in ["sync", "advertising"]:  #Currently ignoring sync, advertising
-                for filename in filenames:
-                    if filename.endswith("jpeg"):
-                        full_file_name = os.path.join(dirname, filename)
-                        train_image = misc.imread(full_file_name)
-                        shape = np.asarray(train_image).shape
-                        if shape[0] == 180 and shape[1] == 240:
-                            images.append(train_image)
-                            cat = convert(label)
-                            labels.append(cat)
-                        else:
-                            print("Incorrect shape", shape)
+            # if label not in ["sync", "advertising"]:  #Currently ignoring sync, advertising
+            for filename in filenames:
+                if filename.endswith("jpeg"):
+                    full_file_name = os.path.join(dirname, filename)
+                    train_image = misc.imread(full_file_name)
+                    shape = np.asarray(train_image).shape
+                    if shape[0] == 180 and shape[1] == 240:
+                        images.append(train_image)
+                        cat = convert(label)
+                        labels.append(cat)
+                    else:
+                        print("Incorrect shape", shape)
                         # print(full_file_name, ":", label,  cat)
     images = np.asarray(images, dtype=np.float32)
     labels = np.asarray(labels)
@@ -115,7 +114,7 @@ def load_dirs(dir_name):
     print("Images shape", images.shape)
     print(images[0])
     labels = np.reshape(labels, labels.shape[0])
-    labels = np.eye(7)[labels]
+    labels = np.eye(9)[labels]
     print("Labels shape", labels.shape)
     return images, labels
 
@@ -138,7 +137,7 @@ def shuffle_and_slice(images, labels, train_percentage=0.8):
 
 
 def convert(label):
-    categories = {'ski':0, 'epic':1, 'musical':2, 'extreme':3, 'pool':4, 'trump':5, 'nosignal':6}
+    categories = {'ski':0, 'epic':1, 'musical':2, 'extreme':3, 'pool':4, 'trump':5, 'nosignal':6, 'advertising':7,"sync":8}
     return categories[label]
 
 
@@ -151,7 +150,7 @@ def create_data_sets(fileName):
     print("Shape of ALLY", ALLY.shape)
     ALLY = np.reshape(ALLY, ALLY.shape[0])
     ALLY0Based = ALLY - 1
-    yLabs = np.eye(7)[ALLY0Based]  # Convert a list of num 0..6 to a list of hot position array [0 0 0 1 0 0 0]
+    yLabs = np.eye(9)[ALLY0Based]  # Convert a list of num 0..6 to a list of hot position array [0 0 0 1 0 0 0]
     totalSamples = ALLY.shape[0]
 
     print("First value NOT shuffled", yLabs[0])
