@@ -29,10 +29,9 @@ def classify_image(image_path):
 
     values = values_list[0]
     indices = indices_list[0]
-    for i in range(len(values)):
-        print("value ", values[i],"category", categories[indices[i]])
-    for index in indices[0]:
-        res.append({"category": categories[index]})
+    for i, item in enumerate(values):
+        category = categories[indices[i]]
+        res.append({"category": category, "score": str(item)})
 
     return res
 
