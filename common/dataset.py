@@ -5,6 +5,8 @@ import numpy as np
 import os
 from tensorflow.python.framework import dtypes
 
+categories = {'ski':0, 'epic':1, 'musical':2, 'extreme':3, 'pool':4, 'trump':5, 'nosignal':6, 'advertising':7,"sync":8, "balloons": 9}
+
 class DataSet(object):
 
     def __init__(self,
@@ -62,7 +64,7 @@ class DataSet(object):
         if fake_data:
             fake_image = [1] * 784
             if self.one_hot:
-                fake_label = [1] + [0] * 9
+                fake_label = [1] + [0] * (len(categories) -1 )
             else:
                 fake_label = 0
             return [fake_image for _ in xrange(batch_size)], [
@@ -104,7 +106,7 @@ def load_dirs(dir_name):
     print("Images shape", images.shape)
     print(images[0])
     labels = np.reshape(labels, labels.shape[0])
-    labels = np.eye(9)[labels]
+    labels = np.eye(len(categories))[labels]
     print("Labels shape", labels.shape)
     return images, labels
 
@@ -151,7 +153,7 @@ def shuffle_and_slice(images, labels, train_percentage=0.8):
 
 
 def convert(label):
-    categories = {'ski':0, 'epic':1, 'musical':2, 'extreme':3, 'pool':4, 'trump':5, 'nosignal':6, 'advertising':7,"sync":8}
+
     return categories[label]
 
 
@@ -164,7 +166,7 @@ def create_data_sets(fileName):
     print("Shape of ALLY", ALLY.shape)
     ALLY = np.reshape(ALLY, ALLY.shape[0])
     ALLY0Based = ALLY - 1
-    yLabs = np.eye(9)[ALLY0Based]  # Convert a list of num 0..6 to a list of hot position array [0 0 0 1 0 0 0]
+    yLabs = np.eye(len(categories))[ALLY0Based]  # Convert a list of num 0..6 to a list of hot position array [0 0 0 1 0 0 0]
     totalSamples = ALLY.shape[0]
 
     print("First value NOT shuffled", yLabs[0])
