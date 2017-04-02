@@ -1,38 +1,31 @@
+# encoding: utf-8
 '''
-A Multilayer Perceptron implementation example using TensorFlow library.
-This example is using the MNIST database of handwritten digits
-(http://yann.lecun.com/exdb/mnist/)
-
-Author: Aymeric Damien
-Project: https://github.com/aymericdamien/TensorFlow-Examples/
+Author: Alvaro González
+Project: https://github.com/kortatu/IntoTheDungeon
 '''
 
 from __future__ import print_function
-
-# Import MNIST data
-# from tensorflow.examples.tutorials.mnist import input_data
-# mnist = input_data.read_data_sets("/tmp/data/", one_hot=True)
+import os
+import sys
+real_path = os.path.realpath(__file__)
+base_dir = real_path[:real_path.rfind("/")]
+sys.path.append(base_dir+'/..')
 import tensorflow as tf
-import dataset as ds
-import perceptron as perceptron
+import common.dataset as ds
+import common.perceptron as perceptron
 
-images, labels = ds.load_dirs("trainImages")
+images, labels = ds.load_dirs(base_dir + "/trainImages")
 trainXs, trainYs, testXs, testYs = ds.shuffle_and_slice(images, labels)
 
 # filename = 'megaImages_gray_s.mat'
 # filename = 'megaImages.mat'
 # trainXs, trainYs, testXs, testYs = ds.create_data_sets(filename)
 dataset = ds.DataSet(trainXs, trainYs, reshape=False)
-# images, labels = tf.train.shuffle_batch([ALLX, yLabs], batch_size=trainingSamples,
-#                                         capacity=trainingSamples, min_after_dequeue=100)
 
 gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.8)  # 0.333
 # Parameters
-# learning_rate = 0.001
 learning_rate = 0.001
-#miLambda = 0.001
 miLambda = 0.04
-#training_epochs = 30
 training_epochs = 275
 batch_size = 75
 display_step = 1
@@ -42,8 +35,8 @@ test_accuracy_step = 5
 # Network Parameters
 n_hidden_1 = 2000          # 1st layer number of features
 n_hidden_2 = 256           # 2nd layer number of features
-n_input = trainXs.shape[1]    # MNIST data input (img shape: 28*28)
-n_classes = trainYs.shape[1]  # MNIST total classes (0-9 digits)
+n_input = trainXs.shape[1]    # Images data input (img shape: 180*240)
+n_classes = trainYs.shape[1]  # total classes (1-x categories)
 
 # tf Graph input
 x = tf.placeholder("float", [None, n_input])
@@ -65,7 +58,7 @@ init = tf.global_variables_initializer()
 
 # Launch the graph
 saver = tf.train.Saver()
-model_path = "/tmp/epicmodel.ckpt"
+model_path = base_dir + "/latest/epicmodel.ckpt"
 with tf.Session(config=tf.ConfigProto(log_device_placement=True, gpu_options=gpu_options)) as sess:
     sess.run(init)
 

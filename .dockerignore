@@ -1,0 +1,11 @@
+Dockerfile
+disableGpu.sh
+testdata.txt
+.idea
+dragon/tmp
+dragontrainer/latest
+dragontrainer/trainImages
+paladin/images
+saves
+*.mat
+venv

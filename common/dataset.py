@@ -85,25 +85,17 @@ class DataSet(object):
         end = self._index_in_epoch
         return self._images[start:end], self._labels[start:end]
 
+
 def load_dirs(dir_name):
     images = []
     labels = []
     for dirname, dirnames, filenames in os.walk(dir_name):
-        print("Dirname", dirname)
-        if "/" in dirname:
-            label = dirname[dirname.index("/") + 1:]
+        print("Dir name", dirname)
+        if dirname != dir_name:
+            label = dirname[dirname.rfind("/") + 1:]
             print("Label", label)
             for filename in filenames:
-                if filename.endswith("jpeg"):
-                    full_file_name = os.path.join(dirname, filename)
-                    train_image = misc.imread(full_file_name)
-                    shape = np.asarray(train_image).shape
-                    if shape[0] == 180 and shape[1] == 240:
-                        images.append(train_image)
-                        cat = convert(label)
-                        labels.append(cat)
-                    else:
-                        print("Incorrect shape", shape)
+                loadImage(dirname, filename, images, label, labels)
     images = np.asarray(images, dtype=np.float32)
     labels = np.asarray(labels)
     print("Images shape", images.shape)
@@ -115,6 +107,20 @@ def load_dirs(dir_name):
     labels = np.eye(9)[labels]
     print("Labels shape", labels.shape)
     return images, labels
+
+
+def loadImage(dirname, filename, images, label, labels):
+    if filename.endswith("jpeg"):
+        full_file_name = os.path.join(dirname, filename)
+        train_image = misc.imread(full_file_name)
+        shape = np.asarray(train_image).shape
+        if shape[0] == 180 and shape[1] == 240:
+            images.append(train_image)
+            cat = convert(label)
+            labels.append(cat)
+        else:
+            print("Incorrect shape", shape)
+
 
 def load_image(filename):
     raw = scipy.misc.imread(filename)

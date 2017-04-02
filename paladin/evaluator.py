@@ -1,8 +1,12 @@
-import tensorflow as tf
-import perceptron as perceptron
-import dataset as ds
-import numpy
+import os
 import sys
+real_path = os.path.realpath(__file__)
+base_dir = real_path[:real_path.rfind("/")]
+sys.path.append(base_dir+'/..')
+import tensorflow as tf
+import common.perceptron as perceptron
+import common.dataset as ds
+import numpy
 
 categories = ['ski', 'epic', 'musical', 'extreme', 'pool', 'trump', 'nosignal']
 num_args = len(sys.argv)
@@ -36,7 +40,7 @@ inputToEvaluate = [imageInput]
 feed_dict = {x: inputToEvaluate}
 # Initializing the variables
 init = tf.global_variables_initializer()
-model_path = "saves/epicmodel.ckpt"
+model_path = base_dir + "/../saves/epicmodel.ckpt"
 saver = tf.train.Saver()
 with tf.Session() as sess:
     sess.run(init)
