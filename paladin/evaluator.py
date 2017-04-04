@@ -11,7 +11,7 @@ import numpy
 categories = ['ski', 'epic', 'musical', 'extreme', 'pool', 'trump', 'nosignal']
 num_args = len(sys.argv)
 if num_args < 2:
-    print("Usage pyton evaluator.py image_file_name")
+    print("Usage python evaluator.py image_file_name")
     exit(1)
 image_file_name = sys.argv[1]
 imageInput = ds.load_image(image_file_name)
@@ -47,5 +47,5 @@ with tf.Session() as sess:
     saver.restore(sess, model_path)
     softmax = evaluator.eval(feed_dict)[0]
     print("Softmax:", softmax)
-    maxCategoryIndex = numpy.argmax(softmax)
-    print("Category predicted = ", categories[maxCategoryIndex])
+    max_category_index = numpy.argmax(softmax)
+    print("Category predicted = ", categories[max_category_index])

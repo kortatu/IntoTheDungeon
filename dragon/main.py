@@ -8,14 +8,15 @@ from flask import request
 from flask import jsonify
 import tensorflow as tf
 import common.perceptron as perceptron
-import urllib
 import uuid
 import common.dataset as dataset
+import urllib2
 
 
 app = Flask(__name__, static_url_path='')
 
-categories = ['ski', 'epic', 'musical', 'extreme', 'pool', 'trump', 'nosignal']
+categories = ['ski', 'epic', 'musical', 'extreme', 'pool', 'trump', 'nosignal', 'advertising', 'nosync', 'balloon']
+authHeader = {"Authorization": "Basic ZGVtaXVyZ286ZmxleA=="}
 
 
 def generate_filepath():
@@ -42,8 +43,10 @@ def classify():
         return ""
 
     filepath = generate_filepath()
-    urllib.urlretrieve(request.args.get('url'), filepath)
-    
+
+    req = urllib2.Request(url=request.args.get('url'), headers=authHeader)
+    with open(filepath,'wb') as f:
+        f.write(urllib2.urlopen(req).read())
     return jsonify(classify_image(filepath))
 
 
@@ -52,7 +55,7 @@ def root():
     return app.send_static_file('index.html')
 
 
-n_classes = 7
+n_classes = 10
 n_input = 129600
 
 # tf Graph input

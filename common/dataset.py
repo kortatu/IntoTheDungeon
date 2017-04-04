@@ -7,6 +7,7 @@ from tensorflow.python.framework import dtypes
 
 categories = {'ski':0, 'epic':1, 'musical':2, 'extreme':3, 'pool':4, 'trump':5, 'nosignal':6, 'advertising':7,"sync":8, "balloons": 9}
 
+
 class DataSet(object):
 
     def __init__(self,
@@ -27,7 +28,7 @@ class DataSet(object):
         assert images.shape[0] == labels.shape[0], (
             'images.shape: %s labels.shape: %s' % (images.shape, labels.shape))
         self._num_examples = images.shape[0]
-
+        self.one_hot = one_hot
         # Convert shape from [num examples, rows, columns, depth]
         # to [num examples, rows*columns] (assuming depth == 1)
         if reshape:
@@ -89,6 +90,11 @@ class DataSet(object):
 
 
 def load_dirs(dir_name):
+    """Load images and labels of all subdirectories of dir_name. The label
+    of each image will be the name of the subdirectory.
+    :param dir_name: directory name to scan for sub folders
+    :return: a list of images and a corespondent list of labels for each image
+    """
     images = []
     labels = []
     for dirname, dirnames, filenames in os.walk(dir_name):
@@ -97,7 +103,7 @@ def load_dirs(dir_name):
             label = dirname[dirname.rfind("/") + 1:]
             print("Label", label)
             for filename in filenames:
-                loadImage(dirname, filename, images, label, labels)
+                load_train_image(dirname, filename, images, label, labels)
     images = np.asarray(images, dtype=np.float32)
     labels = np.asarray(labels)
     print("Images shape", images.shape)
@@ -111,7 +117,7 @@ def load_dirs(dir_name):
     return images, labels
 
 
-def loadImage(dirname, filename, images, label, labels):
+def load_train_image(dirname, filename, images, label, labels):
     if filename.endswith("jpeg"):
         full_file_name = os.path.join(dirname, filename)
         train_image = misc.imread(full_file_name)
@@ -125,31 +131,66 @@ def loadImage(dirname, filename, images, label, labels):
 
 
 def load_image(filename):
-    raw = scipy.misc.imread(filename)
+    raw = misc.imread(filename)
     shape = np.asarray(raw).shape
-    if shape[0] != 180 and shape[1] != 240:
-        print("Image shape is wrong", shape)
-        exit(1)
+    print("Image shape", shape)
+    if shape[0] != 180 or shape[1] != 240:
+        raw = reshape_image(raw, shape, filename)
     image = np.asarray(raw, dtype=np.float32) / 255
     image = np.reshape(image, -1)
     print("Unrolled shape", image.shape)
     return image
 
+
+def reshape_image(raw, shape, filename):
+    """ Reshape an image to be evaluated that doesn't fit 180,240. We can resize and
+        crop the image if the relation doesn't match
+    :param raw: matrix representing the image
+    :param shape: shape of the image
+    :param filename: reshaped image should be saved with a filename similar to the original one
+    :return: matrix representing the image reshaped
+    """
+    ratio = 180.0 / 240.0
+    ratio_2 = float(shape[0]) / float(shape[1])
+    print("Original Ratio: ", ratio_2)
+    if ratio_2 < ratio:
+        print("Cropping rows")
+        # Crop y axis diff should be positive
+        diff = int(round(shape[1] - (shape[0] / ratio)))
+        raw = raw[:, diff/2 :-diff/2, :]
+    elif ratio_2 > ratio:
+        print("Cropping columns")
+        # Crop x axis Diff should be positive
+        diff = int(round(shape[0] - (shape[1] * ratio)))
+        raw = raw[diff/2 + (diff % 2):-diff/2, :, :]
+    shape = np.asarray(raw).shape
+    ratio_upd = shape[0] / float(shape[1])
+    print("Shape/Ratio after crop: ", shape , ratio_upd)
+    im_resize = misc.imresize(raw, (180, 240))
+    shape = np.asarray(im_resize).shape
+    ratio_upd = shape[0] / float(shape[1])
+    print("Shape/Ratio after resize: ", shape , ratio_upd)
+    misc.imsave(filename+"_res.jpg", im_resize)
+    return im_resize
+    # print("Image shape is wrong", shape)
+    # return None
+
+
 def shuffle_and_slice(images, labels, train_percentage=0.8):
     total_samples = images.shape[0]
     perm = numpy.arange(total_samples)
     numpy.random.shuffle(perm)
-    shuffledXs = images[perm]
-    shuffledYs = labels[perm]
+    shuffled_xs = images[perm]
+    shuffled_ys = labels[perm]
     num_training_samples = int(total_samples * train_percentage)
     print("Number of training", num_training_samples)
-    trainXs = shuffledXs[:num_training_samples]
-    trainYs = shuffledYs[:num_training_samples]
+    train_xs = shuffled_xs[:num_training_samples]
+    train_ys = shuffled_ys[:num_training_samples]
     print("Number of test", total_samples - num_training_samples)
-    testXs = shuffledXs[num_training_samples:]
-    testYs = shuffledYs[num_training_samples:]
-    print("Shape of test", testXs.shape)
-    return trainXs, trainYs, testXs, testYs
+    test_xs = shuffled_xs[num_training_samples:]
+    test_ys = shuffled_ys[num_training_samples:]
+    print("Shape of test", test_xs.shape)
+    return train_xs, train_ys, test_xs, test_ys
 
 
 def convert(label):
@@ -157,31 +198,31 @@ def convert(label):
     return categories[label]
 
 
-def create_data_sets(fileName):
+def create_data_sets(file_name):
     """Create the data set for Into The Dungeon"""
-    mat = scipy.io.loadmat(fileName)
+    mat = scipy.io.loadmat(file_name)
     print("Keys ", mat.keys())
-    ALLX = mat['ALLX']
-    ALLY = mat['ALLY']
-    print("Shape of ALLY", ALLY.shape)
-    ALLY = np.reshape(ALLY, ALLY.shape[0])
-    ALLY0Based = ALLY - 1
-    yLabs = np.eye(len(categories))[ALLY0Based]  # Convert a list of num 0..6 to a list of hot position array [0 0 0 1 0 0 0]
-    totalSamples = ALLY.shape[0]
+    all_x = mat['ALLX']
+    all_y = mat['ALLY']
+    print("Shape of ALLY", all_y.shape)
+    all_y = np.reshape(all_y, all_y.shape[0])
+    all_y_0_based = all_y - 1
+    y_labs = np.eye(len(categories))[all_y_0_based]  # Convert a list of num 0..6 to a list of hot position array [0 0 0 1 0 0 0]
+    total_samples = all_y.shape[0]
 
-    print("First value NOT shuffled", yLabs[0])
-    perm = numpy.arange(totalSamples)
+    print("First value NOT shuffled", y_labs[0])
+    perm = numpy.arange(total_samples)
     numpy.random.shuffle(perm)
-    shuffledXs = ALLX[perm]
-    shuffledYs = yLabs[perm]
-    print("First value shuffled", shuffledYs[0])
+    shuffled_xs = all_x[perm]
+    shuffled_ys = y_labs[perm]
+    print("First value shuffled", shuffled_ys[0])
 
-    numTrainingSamples = int(totalSamples * 0.8)
-    print("Number of training", numTrainingSamples)
-    trainXs = shuffledXs[:numTrainingSamples]
-    trainYs = shuffledYs[:numTrainingSamples]
-    print("Number of test", totalSamples - numTrainingSamples)
-    testXs = shuffledXs[numTrainingSamples:]
-    testYs = shuffledYs[numTrainingSamples:]
-    print("Shape of test", testXs.shape)
-    return trainXs, trainYs, testXs, testYs
+    num_training_samples = int(total_samples * 0.8)
+    print("Number of training", num_training_samples)
+    train_xs = shuffled_xs[:num_training_samples]
+    train_ys = shuffled_ys[:num_training_samples]
+    print("Number of test", total_samples - num_training_samples)
+    test_xs = shuffled_xs[num_training_samples:]
+    test_ys = shuffled_ys[num_training_samples:]
+    print("Shape of test", test_xs.shape)
+    return train_xs, train_ys, test_xs, test_ys
