@@ -36,11 +36,13 @@ while True:
         face_names = []
         for face_encoding in face_encodings:
             # See if the face is a match for the known face(s)
-            match = face_recognition.compare_faces(encodings, face_encoding)
+            distances = face_recognition.face_distance(encodings, face_encoding)
             name = "Unknown"
+            maxScore = 99
 
-            for index, val in enumerate(match):
-                if(val):
+            for index, val in enumerate(distances):
+                if(val <= 0.6 and val < maxScore):
+                    maxScore = val
                     name = names[index]
 
             face_names.append(name)

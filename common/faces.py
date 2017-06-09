@@ -27,8 +27,6 @@ class Faces(object):
     def addNewImages(self):
 
         onlyfiles = [f for f in listdir(self.dir) if (isfile(join(self.dir, f)) and ".jpg" in f )]
-        print(onlyfiles)
-        print(self.dir)
         for pic in onlyfiles:
             name = pic.replace(".jpg", "")
             if (name not in self.names):
