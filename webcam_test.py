@@ -1,25 +1,15 @@
 import face_recognition
 import cv2
-
-from os import listdir
-from os.path import isfile, join
+import common.faces as faces
 
 dir = "dragontrainer/trainImages/pics"
 
 video_capture = cv2.VideoCapture(0)
 
-onlyfiles = [f for f in listdir(dir) if (isfile(join(dir, f)) and ".jpg" in f )]
+facesLib = faces.Faces(dir)
 
-encodings = [];
-names = [];
-
-for pic in onlyfiles:
-    name = pic.replace(".jpg", "")
-    print "Processing " + name
-    image = face_recognition.load_image_file(dir + "/" + pic)
-    image_encoding = face_recognition.face_encodings(image)[0]
-    encodings.append( image_encoding )
-    names.append( name )
+encodings = facesLib.getImages()['images']
+names = facesLib.getImages()['names']
 
 face_locations = []
 face_encodings = []
@@ -32,6 +22,10 @@ while True:
 
     # Only process every other frame of video to save time
     if process_this_frame:
+
+        # Refresh in case we have new faces
+        encodings = facesLib.getImages()['images']
+        names = facesLib.getImages()['names']
 
         small_frame = cv2.resize(frame, (0, 0), fx=0.5, fy=0.5)
 
