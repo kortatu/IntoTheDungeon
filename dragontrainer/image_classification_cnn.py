@@ -9,104 +9,124 @@ import os
 import sys
 real_path = os.path.realpath(__file__)
 base_dir = real_path[:real_path.rfind("/")]
-sys.path.append(base_dir+'/..')
+sys.path.append(base_dir + '/..')
 import tensorflow as tf
 import common.dataset as ds
-import common.perceptron as perceptron
+import common.cnn as cnn
+import argparse
 
-images, labels = ds.load_dirs(base_dir + "/trainImages")
-trainXs, trainYs, testXs, testYs = ds.shuffle_and_slice(images, labels)
+parser = argparse.ArgumentParser(description="Train cnn or evaulate on test set")
+parser.add_argument('-t', '--test', default=None,
+                    help='Execute accuracy on test set loaded from directory. Default test/')
+parser.add_argument('-r', '--restart', action='store_const', const=True,
+                    help='Restart training')
+parser.add_argument('-c', '--cost', default=900,
+                    help='Minimum cost to save')
 
-# filename = 'megaImages_gray_s.mat'
-# filename = 'megaImages.mat'
-# trainXs, trainYs, testXs, testYs = ds.create_data_sets(filename)
-dataset = ds.DataSet(trainXs, trainYs, reshape=False)
+args = parser.parse_args()
+print("Args", args)
+
+paths, labels = ds.load_dirs_with_labels("/tmp/smoke_images")
+# load_dirs(base_dir + "/trainImages")
+# trainXs, trainYs, testXs, testYs = ds.shuffle_and_slice(paths, labels)
+
+dataset = ds.PathDataSet(paths, labels, 0.8)
 
 gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.8)  # 0.333
 # Parameters
 learning_rate = 0.001
-miLambda = 0.04
-training_epochs = 275
-batch_size = 75
+training_epochs = 100
+batch_size = 100
 display_step = 5
 train_accuracy_step = 5
-test_accuracy_step = 2
+test_accuracy_step = 1
 
 # Network Parameters
-n_hidden_1 = 2000          # 1st layer number of features
-n_hidden_2 = 256           # 2nd layer number of features
-n_input = trainXs.shape[1]    # Images data input (img shape: 180*240)
-n_classes = trainYs.shape[1]  # total classes (1-x categories)
+# n_input = trainXs.shape[1]    # Images data input (img shape: 180*240)
+# TODO: extract n_input from datasource from sample image
+n_input = 300*400*3    # Images data input (img shape: h*v*deep)
+n_classes = labels.shape[1]  # total classes (1-x categories)
+dropout = 0.75  # Dropout, probability to keep units
 
 # tf Graph input
-x = tf.placeholder("float", [None, n_input], name="x")
-y = tf.placeholder("float", [None, n_classes], name="labels")
-la = tf.constant(miLambda, "float", )
+x = tf.placeholder(tf.float32, [None, n_input], name="x")
+y = tf.placeholder(tf.float32, [None, n_classes], name="labels")
+keep_prob = tf.placeholder(tf.float32) #dropout (keep probability)
 
 # Construct model
-weights, biases = perceptron.getVariables(n_input, n_classes)
-pred = perceptron.multilayer_perceptron(x, weights, biases)
-regul = la * (tf.nn.l2_loss(weights['h1']) + tf.nn.l2_loss(weights['h2']) + tf.nn.l2_loss(weights['out']))
+weights, biases = cnn.get_variables(n_input, n_classes)
+# Construct model
+pred = cnn.conv_net(300, 400, x, weights, biases, keep_prob)
+
 
 # Define loss and optimizer
-with tf.name_scope("xentropy"):
-    sce = tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=y)
-    mean_entropy = tf.reduce_mean(sce, name="mean_entropy")
-    tf.summary.scalar('cross_entropy', mean_entropy)
-    tf.summary.scalar('regularization', regul)
-    cost = mean_entropy + regul
-    tf.summary.scalar('cost', cost)
-
+cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=y), name="mean_entropy")
 with tf.name_scope("train"):
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
+
+# Evaluate model
+correct_pred = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
+accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
 
 # Initializing the variables
 init = tf.global_variables_initializer()
 
 # Launch the graph
 saver = tf.train.Saver()
-model_path = base_dir + "/latest/epicmodel.ckpt"
+model_path = base_dir + "/latest/epicmodelcnn.ckpt"
+
 with tf.Session(config=tf.ConfigProto(log_device_placement=True, gpu_options=gpu_options)) as sess:
     sess.run(init)
-    writer = tf.summary.FileWriter("/tmp/mapmaker/1")
-    merge_summary = tf.summary.merge_all()
-    writer.add_graph(sess.graph)
-    correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
-    accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
-    tf.summary.scalar('accuracy', accuracy)
+    if args.restart is None:
+        saver.restore(sess, model_path)
+    if args.test is None:
+        writer = tf.summary.FileWriter("/tmp/mapmaker/2")
+        merge_summary = tf.summary.merge_all()
+        writer.add_graph(sess.graph)
+        tf.summary.scalar('accuracy', accuracy)
 
-    # print("Shuffled? " , train_batch)
-    print("Starting optimization")
-    for epoch in range(training_epochs):
-        avg_cost = 0.
-        total_batch = trainXs.shape[0] / batch_size
-        # Loop over batches
-        for i in range(total_batch):
-            batch_x, batch_y = dataset.next_batch(batch_size)
-            _, c = sess.run([optimizer, cost], feed_dict={x: batch_x, y: batch_y})
-            print("Epoch:", '%04d' % (epoch + 1), "Batch:", '%02d' % (i + 1), "/", '%02d' % total_batch, "cost=", "{:.9f}".format(c))
-            s = sess.run(merge_summary, feed_dict={x: batch_x, y: batch_y})
-            summary_index = epoch * total_batch + i
+        # print("Shuffled? " , train_batch)
+        print("Starting optimization")
+        best_cost = args.cost
+        for epoch in range(training_epochs):
+            avg_cost = 0.
+            total_batch = dataset.number_of_batches(batch_size)
+            # Loop over batches
+            for i in range(total_batch):
+                batch_x, batch_y = dataset.next_batch(batch_size)
+                _, c = sess.run([optimizer, cost], feed_dict={x: batch_x, y: batch_y, keep_prob: dropout})
+                print("Epoch:", '%04d' % (epoch + 1), "Batch:", '%02d' % (i + 1), "/", '%02d' % total_batch, "cost=", "{:.4f}".format(c))
+                # s = sess.run(merge_summary, feed_dict={x: batch_x, y: batch_y, keep_prob: 1.})
+                # summary_index = epoch * total_batch + i
+                avg_cost += c / total_batch
 
-            avg_cost += c / total_batch
+            print("Epoch:", '%04d' % (epoch + 1), "Average cost=", "{:.9f}".format(avg_cost))
 
-        print("Epoch:", '%04d' % (epoch + 1), "Average cost=", "{:.9f}".format(avg_cost))
-        if summary_index % display_step == 0:
-            print("Summary index:", summary_index)
-            writer.add_summary(s, summary_index)
-        if (epoch + 1) % test_accuracy_step == 0:
-            aTestResult = sess.run(pred, feed_dict={x: testXs[0:1]})
-            print("A test result", aTestResult, "ITs label:", testYs[0:1])
-            print("Epoch:", '%04d' % (epoch + 1), "Accuracy test:", accuracy.eval({x: testXs, y: testYs}))
+            if best_cost is None or best_cost > avg_cost:
+                print("Best cost updated!")
+                best_cost = avg_cost
+                save_path = saver.save(sess, model_path)
 
-    # Test model
-    # correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
-    # # Calculate accuracy
-    # accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
+            if (epoch + 1) % test_accuracy_step == 0:
+                test_xs, test_ys = dataset.test_images_and_labels(max=100)
+                print("Epoch:", '%04d' % (epoch + 1), "Accuracy test:", accuracy.eval({x: test_xs, y: test_ys, keep_prob: 1.}))
 
-    save_path = saver.save(sess, model_path)
-    print("Model saved in file: %s" % save_path)
+        # Test model
+        # correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
+        # # Calculate accuracy
+        # accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
 
-    print("Accuracy train:", accuracy.eval({x: trainXs, y: trainYs}))
-    print("Accuracy test:", accuracy.eval({x: testXs, y: testYs}))
+        save_path = saver.save(sess, model_path)
+        print("Model saved in file: %s" % save_path)
+
+    else:
+        print("Loading tests from", args.test)
+        test_paths, test_labels = ds.load_dirs_with_labels(args.test)
+        test_dataset = ds.PathDataSet(test_paths, test_labels, 0)
+        test_xs, test_ys = test_dataset.test_images_and_labels()
+        accuracy = sess.run(accuracy, feed_dict={x: test_xs, y: test_ys, keep_prob: 1.})
+        print("Accuracy test:", accuracy)
+
+    # print("Accuracy train:", accuracy.eval({x: trainXs, y: trainYs, keep_prob: 1.}))
+    # print("Accuracy test:", accuracy.eval({x: testXs, y: testYs, keep_prob: 1.}))
 
