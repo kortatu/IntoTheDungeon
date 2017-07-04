@@ -203,6 +203,8 @@ def organize_dirs_with_labels(dir_names, labels_dict, output, augmentations = No
             train_image = load_train_image(dirname, file_name, images, label, labels, True)
             if augmentations:
                 train_image = augment_image( train_image, augmentations )
+                for augmentation in augmentations:
+                    file_name = file_name.replace('.', augmentation.name + '.')
             if train_image is not None:
                 save_to_label_folder(output, file_name, label, train_image)
 
