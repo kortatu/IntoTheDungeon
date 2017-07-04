@@ -181,12 +181,13 @@ class PathDataSet(object):
         return self._test_images[:max], self._test_labels[:max]
 
 
-def organize_dirs_with_labels(dir_names, labels_dict, output):
+def organize_dirs_with_labels(dir_names, labels_dict, output, augmentations = None):
     """Load images and labels of all directories in dir_name. The label
     of each subdirectory will be queried in labels_dict.
     :param dir_names: directory names to scan
     :param labels_dict: dictionary with directory_names to label (could contain several names to the same label)
     :param output directory where the images will be classified. There subdirectories will be created by each label
+    :param augmentations Optional parameter to augment the images
     :return: a list of images and a corespondent list of labels for each image
     """
     images = []
@@ -200,6 +201,8 @@ def organize_dirs_with_labels(dir_names, labels_dict, output):
         for file_name in file_names:
             print("File", file_name, "in dir", dirname)
             train_image = load_train_image(dirname, file_name, images, label, labels, True)
+            if augmentations:
+                train_image = augment_image( train_image, augmentations )
             if train_image is not None:
                 save_to_label_folder(output, file_name, label, train_image)
 
@@ -467,3 +470,11 @@ def create_data_sets(file_name):
     test_ys = shuffled_ys[num_training_samples:]
     print("Shape of test", test_xs.shape)
     return train_xs, train_ys, test_xs, test_ys
+
+
+def augment_image( image, augmentations ):
+    if image is not None:
+        for augmenter in augmentations:
+            image = augmenter.augment_image( image )
+
+    return image
