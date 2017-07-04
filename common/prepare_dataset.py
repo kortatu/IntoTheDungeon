@@ -13,13 +13,15 @@ def process_augmentations( augmentationString ):
     for augmentation in augmentations:
         method, values = augmentation.split(":")
 
+        func = getattr(iaa, method)
+
         values = map(float, values.split(';'))
 
         if len(values) == 1:
-            values = values[0]
+            augmenter = func(values[0])
+        else:
+            augmenter = func(*values)
 
-        func = getattr(iaa, method)
-        augmenter = func(values)
         print("Got augmenter:")
         print(augmenter)
         processedAugmentations.append(augmenter)
@@ -31,10 +33,12 @@ parser.add_argument('labels', metavar='l', type=str, help='comma separated label
 parser.add_argument('-o', '--output', default='output',
                     help='Output directory where the images will be classified. Default to output in current dir')
 parser.add_argument('--augmentations', '-a', metavar="a", type=str, help="Comma separated augmentations for the "
-                                                                         "dataset, like GaussianBlur:0.6,Fliplr:0.5 "
+                                                                         "dataset, like GaussianBlur:0.6,Fliplr:0.5,Sharpen:0.9;0.3 "
                                                                          "... "
                                                                          "To see the list of parameters, check "
                                                                          "https://github.com/aleju/imgaug")
+
+# python prepare_dataset.py /Users/alvaroescarcha/Desktop/tshirt/tshirts 0 -o /Users/alvaroescarcha/Desktop/tshirt_aug10 --augmentations "Sharpen:0.9;0.3,GaussianBlur:1.6,Fliplr:0.5"
 
 args = parser.parse_args()
 print("Args", args)
