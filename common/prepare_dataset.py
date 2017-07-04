@@ -8,23 +8,24 @@ from imgaug import augmenters as iaa
 
 def process_augmentations( augmentationString ):
     processedAugmentations = []
-    augmentations = augmentationString.split(',')
-    print(augmentations)
-    for augmentation in augmentations:
-        method, values = augmentation.split(":")
+    if augmentationString:
+        augmentations = augmentationString.split(',')
+        for augmentation in augmentations:
+            method, values = augmentation.split(":")
 
-        func = getattr(iaa, method)
+            func = getattr(iaa, method)
 
-        values = map(float, values.split(';'))
+            values = map(float, values.split(';'))
 
-        if len(values) == 1:
-            augmenter = func(values[0])
-        else:
-            augmenter = func(*values)
+            if len(values) == 1:
+                augmenter = func(values[0])
+            else:
+                augmenter = func(*values)
 
-        print("Got augmenter:")
-        print(augmenter)
-        processedAugmentations.append(augmenter)
+            print("Got augmenter:")
+            print(augmenter)
+            processedAugmentations.append(augmenter)
+
     return processedAugmentations
 
 parser = argparse.ArgumentParser(description="Prepare image dataset resinzing and organizing by label")
