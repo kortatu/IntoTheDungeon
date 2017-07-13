@@ -176,9 +176,16 @@ class PathDataSet(object):
         if self._test_images is None:
             print('Loading %04d test images' % len(self._test_paths))
             self._test_images = self.load_images(self._test_paths)
+        tests_len = len(self._test_images)
         if max is None:
-            max = len(self._test_images)
-        return self._test_images[:max], self._test_labels[:max]
+            max = tests_len
+        if max < tests_len:
+            perm = numpy.arange(tests_len)
+            numpy.random.shuffle(perm)
+            self._test_images = self._test_images[perm]
+            self._test_labels = self._test_labels[perm]
+            self._test_paths  = self._test_paths[perm]
+        return self._test_images[:max], self._test_labels[:max], self._test_paths[:max]
 
 
 def organize_dirs_with_labels(dir_names, labels_dict, output, augmentations = None):

@@ -33,3 +33,7 @@ Accuracy test: 0.878788
 Lambda 0.004 (200 epochs)
 Accuracy train: 0.996212
 Accuracy test: 0.944444
+
+
+Lambda 0.004 (275 epochs), batch 150, 9 categories, regularization / total_weights
+

@@ -11,19 +11,19 @@ def getVariables(n_input, n_classes):
         'out': tf.Variable(tf.random_normal([n_hidden_2, n_classes]), name="outW")
     }
     biases = {
-        'b1': tf.Variable(tf.constant(0.1, shape=[n_hidden_1]), name="b1"),
-        'b2': tf.Variable(tf.constant(0.1, shape=[n_hidden_2]), name="b2"),
-        'out': tf.Variable(tf.constant(0.1, shape=[n_classes]), name="outB")
+        'b1': tf.Variable(tf.random_normal([n_hidden_1]), name="b1"),
+        'b2': tf.Variable(tf.random_normal([n_hidden_2]), name="b2"),
+        'out': tf.Variable(tf.random_normal([n_classes]), name="outB")
     }
-    with tf.name_scope('hidden1'):
-        tf.summary.histogram("weights", weights['h1'])
-        tf.summary.histogram("biases", biases['b1'])
-    with tf.name_scope('hidden2'):
-        tf.summary.histogram("weights", weights['h2'])
-        tf.summary.histogram("biases", biases['b2'])
-    with tf.name_scope('out'):
-        tf.summary.histogram("weights", weights['out'])
-        tf.summary.histogram("biases", biases['out'])
+    # with tf.name_scope('hidden1'):
+    #     tf.summary.histogram("weights", weights['h1'])
+    #     tf.summary.histogram("biases", biases['b1'])
+    # with tf.name_scope('hidden2'):
+    #     tf.summary.histogram("weights", weights['h2'])
+    #     tf.summary.histogram("biases", biases['b2'])
+    # with tf.name_scope('out'):
+    #     tf.summary.histogram("weights", weights['out'])
+    #     tf.summary.histogram("biases", biases['out'])
 
 
 
@@ -37,7 +37,7 @@ def multilayer_perceptron(x, weights, biases):
     layer_1 = tf.nn.relu(layer_1)
     # Hidden layer with RELU activation
     layer_2 = tf.add(tf.matmul(layer_1, weights['h2']), biases['b2'])
-    layer_2 = tf.nn.sigmoid(layer_2)
+    layer_2 = tf.nn.relu(layer_2)
     # Output layer with linear activation
     out_layer = tf.matmul(layer_2, weights['out']) + biases['out']
     with tf.name_scope('hidden1'):

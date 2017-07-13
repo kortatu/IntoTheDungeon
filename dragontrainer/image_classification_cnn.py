@@ -15,7 +15,7 @@ import common.dataset as ds
 import common.cnn as cnn
 import argparse
 
-parser = argparse.ArgumentParser(description="Train cnn or evaulate on test set")
+parser = argparse.ArgumentParser(description="Train cnn or evaluate on test set")
 parser.add_argument('-t', '--test', default=None,
                     help='Execute accuracy on test set loaded from directory. Default test/')
 parser.add_argument('-r', '--restart', action='store_const', const=True,
@@ -30,16 +30,20 @@ paths, labels = ds.load_dirs_with_labels("/tmp/smoke_images")
 # load_dirs(base_dir + "/trainImages")
 # trainXs, trainYs, testXs, testYs = ds.shuffle_and_slice(paths, labels)
 
-dataset = ds.PathDataSet(paths, labels, 0.8)
+dataset = ds.PathDataSet(paths, labels, 0.9)
+
+# test_xs, test_ys = dataset.test_images_and_labels(max=100)
+# print("test_ys", test_ys)
+# exit(0)
 
 gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.8)  # 0.333
 # Parameters
 learning_rate = 0.001
 training_epochs = 100
-batch_size = 100
+batch_size = 20
 display_step = 5
-train_accuracy_step = 5
-test_accuracy_step = 1
+train_accuracy_step = 2
+test_accuracy_step = 2
 
 # Network Parameters
 # n_input = trainXs.shape[1]    # Images data input (img shape: 180*240)
@@ -60,7 +64,8 @@ pred = cnn.conv_net(300, 400, x, weights, biases, keep_prob)
 
 
 # Define loss and optimizer
-cost = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=y), name="mean_entropy")
+softmax_cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=y)
+cost = tf.reduce_mean(softmax_cross_entropy, name="mean_entropy")
 with tf.name_scope("train"):
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
 
@@ -75,7 +80,7 @@ init = tf.global_variables_initializer()
 saver = tf.train.Saver()
 model_path = base_dir + "/latest/epicmodelcnn.ckpt"
 
-with tf.Session(config=tf.ConfigProto(log_device_placement=True, gpu_options=gpu_options)) as sess:
+with tf.Session(config=(tf.ConfigProto())) as sess:
     sess.run(init)
     if args.restart is None:
         saver.restore(sess, model_path)
@@ -90,17 +95,21 @@ with tf.Session(config=tf.ConfigProto(log_device_placement=True, gpu_options=gpu
         best_cost = args.cost
         for epoch in range(training_epochs):
             avg_cost = 0.
+            avg_accu = 0.
             total_batch = dataset.number_of_batches(batch_size)
             # Loop over batches
             for i in range(total_batch):
                 batch_x, batch_y = dataset.next_batch(batch_size)
-                _, c = sess.run([optimizer, cost], feed_dict={x: batch_x, y: batch_y, keep_prob: dropout})
-                print("Epoch:", '%04d' % (epoch + 1), "Batch:", '%02d' % (i + 1), "/", '%02d' % total_batch, "cost=", "{:.4f}".format(c))
+                _, c, accuracy_t = sess.run([optimizer, cost, accuracy], feed_dict={x: batch_x, y: batch_y, keep_prob: dropout})
+                print("Epoch:", '%04d' % (epoch + 1), "Batch:", '%02d' % (i + 1), "/", '%02d' % total_batch,
+                      "cost=", "{:.4f}".format(c), "Accuracy train:", accuracy_t)
                 # s = sess.run(merge_summary, feed_dict={x: batch_x, y: batch_y, keep_prob: 1.})
                 # summary_index = epoch * total_batch + i
                 avg_cost += c / total_batch
+                avg_accu += accuracy_t / total_batch
 
             print("Epoch:", '%04d' % (epoch + 1), "Average cost=", "{:.9f}".format(avg_cost))
+            print("Epoch:", '%04d' % (epoch + 1), "Average accu=", "{:.9f}".format(avg_accu))
 
             if best_cost is None or best_cost > avg_cost:
                 print("Best cost updated!")
@@ -108,8 +117,10 @@ with tf.Session(config=tf.ConfigProto(log_device_placement=True, gpu_options=gpu
                 save_path = saver.save(sess, model_path)
 
             if (epoch + 1) % test_accuracy_step == 0:
-                test_xs, test_ys = dataset.test_images_and_labels(max=100)
-                print("Epoch:", '%04d' % (epoch + 1), "Accuracy test:", accuracy.eval({x: test_xs, y: test_ys, keep_prob: 1.}))
+                test_xs, test_ys, _  = dataset.test_images_and_labels(max=20)
+                accuracy_value, test_cost = sess.run([accuracy, cost],
+                                                     feed_dict={x: test_xs, y: test_ys, keep_prob: 1.})
+                print("Epoch:", '%04d' % (epoch + 1), "Accuracy test:", accuracy_value, "| Test Cost:", test_cost)
 
         # Test model
         # correct_prediction = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
@@ -123,10 +134,12 @@ with tf.Session(config=tf.ConfigProto(log_device_placement=True, gpu_options=gpu
         print("Loading tests from", args.test)
         test_paths, test_labels = ds.load_dirs_with_labels(args.test)
         test_dataset = ds.PathDataSet(test_paths, test_labels, 0)
-        test_xs, test_ys = test_dataset.test_images_and_labels()
-        accuracy = sess.run(accuracy, feed_dict={x: test_xs, y: test_ys, keep_prob: 1.})
-        print("Accuracy test:", accuracy)
+        test_xs, test_ys, test_paths  = test_dataset.test_images_and_labels(max=200)
+        accuracy_value, test_cost, sce, pred_v = sess.run([accuracy, cost, softmax_cross_entropy, pred],
+                                                          feed_dict={x: test_xs, y: test_ys, keep_prob: 1.})
+        print("Accuracy test:", accuracy_value, "| Test Cost:", test_cost, "|SCE: ", sce)
+        print("Pred", pred_v, "| Label:", test_ys)
+        print("Paths", test_paths)
 
-    # print("Accuracy train:", accuracy.eval({x: trainXs, y: trainYs, keep_prob: 1.}))
-    # print("Accuracy test:", accuracy.eval({x: testXs, y: testYs, keep_prob: 1.}))
-
+        # print("Accuracy train:", accuracy.eval({x: trainXs, y: trainYs, keep_prob: 1.}))
+        # print("Accuracy test:", accuracy.eval({x: testXs, y: testYs, keep_prob: 1.}))
