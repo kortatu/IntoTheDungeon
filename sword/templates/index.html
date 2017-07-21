@@ -1,0 +1,20 @@
+{% extends "layout.html" %}
+{% block title %}Image classification list{% endblock %}
+{% block content %}
+<h1>Smoker video demo</h1>
+<p class="lead">
+    Awesome
+</p>
+
+<div class="col-xs-12">
+    <div align="center" class="embed-responsive embed-responsive-16by9">
+        <video id="video" autoplay loop class="embed-responsive-item">
+            <source src="/static/videos/{{ config.video }}" type="video/mp4">
+            <!--<source src="http://www.sample-videos.com/video/mp4/720/big_buck_bunny_720p_30mb.mp4" type="video/mp4">-->
+        </video>
+    </div>
+    <canvas style="display: none" id="canvas" width="1280" height="720"></canvas>
+</div>
+
+{% endblock %}
+
