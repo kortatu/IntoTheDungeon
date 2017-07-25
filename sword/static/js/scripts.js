@@ -1,9 +1,12 @@
 $('document').ready(function() {
     window.setInterval(function(){
         classify(capture()).then(function(response){
-            console.log(response);
+        document.getElementById('topCategory').innerHTML = response.topCategory;
+        document.getElementById('score').innerHTML = response.score;
+
+        console.log(response);
         });
-    }, 250);
+    }, 500);
 });
 
 
@@ -11,7 +14,7 @@ function capture() {
     var canvas = document.getElementById('canvas');
     var video = document.getElementById('video');
     canvas.getContext('2d').drawImage(video, 0, 0);
-    return canvas.toDataURL();
+    return canvas.toDataURL('image/jpeg', 1.0);
 }
 
 function classify( thumbnail ) {
