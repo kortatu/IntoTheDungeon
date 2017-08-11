@@ -1,0 +1,7 @@
+body > div.container {
+    margin-top: 40px;
+}
+
+.label-selector {
+    text-transform: uppercase;
+}
