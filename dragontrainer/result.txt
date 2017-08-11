@@ -1,0 +1,5 @@
+latest_1:
+Epoch: 1000 Batch: 362 / 362 cost= 0.5009 Accuracy train: 0.8
+Epoch: 1000 Average cost= 0.479259262
+Epoch: 1000 Average accu= 0.814640890
+Epoch: 1000 Accuracy test: 0.7 | Test Cost: 0.64724

@@ -14,19 +14,20 @@ import tensorflow as tf
 import common.dataset as ds
 import common.cnn as cnn
 import argparse
+import numpy as np
 
 parser = argparse.ArgumentParser(description="Train cnn or evaluate on test set")
 parser.add_argument('-t', '--test', default=None,
                     help='Execute accuracy on test set loaded from directory. Default test/')
 parser.add_argument('-r', '--restart', action='store_const', const=True,
                     help='Restart training')
-parser.add_argument('-c', '--cost', default=900,
+parser.add_argument('-c', '--cost', default=None,
                     help='Minimum cost to save')
 
 args = parser.parse_args()
 print("Args", args)
 
-paths, labels = ds.load_dirs_with_labels("/tmp/smoke_images")
+paths, labels = ds.load_dirs_with_labels("smoke_images")
 # load_dirs(base_dir + "/trainImages")
 # trainXs, trainYs, testXs, testYs = ds.shuffle_and_slice(paths, labels)
 
@@ -36,10 +37,10 @@ dataset = ds.PathDataSet(paths, labels, 0.9)
 # print("test_ys", test_ys)
 # exit(0)
 
-gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.8)  # 0.333
+gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.8) 
 # Parameters
 learning_rate = 0.001
-training_epochs = 100
+training_epochs = 1000
 batch_size = 20
 display_step = 5
 train_accuracy_step = 2
@@ -47,10 +48,12 @@ test_accuracy_step = 2
 
 # Network Parameters
 # n_input = trainXs.shape[1]    # Images data input (img shape: 180*240)
-# TODO: extract n_input from datasource from sample image
-n_input = 300*400*3    # Images data input (img shape: h*v*deep)
+an_image = dataset.load_sample_image()
+sample_shape = np.asarray(an_image).shape
+n_input = sample_shape[0]*sample_shape[1]*sample_shape[2]    # Images data input (img shape: h*v*deep)
+print ("Sample shape", sample_shape, "n_input", n_input)
 n_classes = labels.shape[1]  # total classes (1-x categories)
-dropout = 0.75  # Dropout, probability to keep units
+dropout = 0.7  # Dropout, probability to keep units
 
 # tf Graph input
 x = tf.placeholder(tf.float32, [None, n_input], name="x")
@@ -60,7 +63,7 @@ keep_prob = tf.placeholder(tf.float32) #dropout (keep probability)
 # Construct model
 weights, biases = cnn.get_variables(n_input, n_classes)
 # Construct model
-pred = cnn.conv_net(300, 400, x, weights, biases, keep_prob)
+pred = cnn.conv_net(sample_shape[0], sample_shape[1], x, weights, biases, keep_prob)
 
 
 # Define loss and optimizer
@@ -115,6 +118,8 @@ with tf.Session(config=(tf.ConfigProto())) as sess:
                 print("Best cost updated!")
                 best_cost = avg_cost
                 save_path = saver.save(sess, model_path)
+            else:
+                print("Previous best cost", best_cost, "was better, not updating")
 
             if (epoch + 1) % test_accuracy_step == 0:
                 test_xs, test_ys, _  = dataset.test_images_and_labels(max=20)

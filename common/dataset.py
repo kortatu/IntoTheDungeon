@@ -155,6 +155,10 @@ class PathDataSet(object):
         end = self._index_in_epoch
         return self.load_images(self._train_paths[start:end]), self._train_labels[start:end]
 
+    def load_sample_image(self):
+        path = self.train_paths[0]
+        return misc.imread(path)
+
     def load_images(self, paths):
         images = []
         for path in paths:
