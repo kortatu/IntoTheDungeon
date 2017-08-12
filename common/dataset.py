@@ -153,7 +153,8 @@ class PathDataSet(object):
             self._index_in_epoch = batch_size
             assert batch_size <= self._num_examples
         end = self._index_in_epoch
-        return self.load_images(self._train_paths[start:end]), self._train_labels[start:end]
+        paths_start_end = self._train_paths[start:end]
+        return self.load_images(paths_start_end), self._train_labels[start:end], paths_start_end
 
     def load_sample_image(self):
         path = self.train_paths[0]
@@ -177,6 +178,8 @@ class PathDataSet(object):
         return len(self._train_paths) / batch_size
 
     def test_images_and_labels(self, max=None):
+        if len(self._test_paths) == 0:
+            return [],[]
         if self._test_images is None:
             print('Loading %04d test images' % len(self._test_paths))
             self._test_images = self.load_images(self._test_paths)
@@ -289,7 +292,7 @@ def load_train_image(dirname, filename, images, label, labels, reshape=False):
         shape = np.asarray(train_image).shape
         if len(shape) >= 1:
             shape, train_image = normalize_dimensions(shape, train_image)
-            target_shape = (300, 400)
+            target_shape = (416, 416)  # (416 = 12 * 2^5)
             correct_shape = shape[0] == target_shape[0] and shape[1] == target_shape[1]
             correct_shape, train_image = reshape_if_needed(correct_shape, reshape, shape, target_shape, train_image)
             if correct_shape:

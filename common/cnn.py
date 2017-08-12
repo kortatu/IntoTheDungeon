@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 
-def get_variables(n_input, n_classes):
+def get_variables(input_shape, n_classes):
     # Store layers weight & bias
     first_layer_features = 16
     second_layer_features = 16
@@ -9,6 +9,11 @@ def get_variables(n_input, n_classes):
     fourth_layer_features = 32
     fifth_layer_features = 64
     fc_layer_features = 1024
+    print("Image shape x,y", input_shape[0], input_shape[1])
+    print("Total Maxpool division", (2 ** 5))
+    last_x = input_shape[0] / (2 ** 5)
+    last_y = input_shape[1] / (2 ** 5)
+    print("Last convolution x,y", last_x, last_y)
     weights = {
         # 5x5 conv, 3 input, 32 outputs
         'wc1': tf.Variable(tf.random_normal([5, 5, 3, first_layer_features])),
@@ -25,7 +30,7 @@ def get_variables(n_input, n_classes):
         'wc10': tf.Variable(tf.random_normal([5, 5, fourth_layer_features, fourth_layer_features])),
         'wc11': tf.Variable(tf.random_normal([5, 5, fourth_layer_features, fourth_layer_features])),
         # fully connected, 3*4*64 inputs, 1024 outputs
-        'wd1': tf.Variable(tf.random_normal([7*7 * fourth_layer_features, fc_layer_features])),
+        'wd1': tf.Variable(tf.random_normal([last_x*last_y * fourth_layer_features, fc_layer_features])),
         # 1024 inputs, 10 outputs (class prediction)
         'out': tf.Variable(tf.random_normal([fc_layer_features, n_classes]))
     }

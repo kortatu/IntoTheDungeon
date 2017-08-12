@@ -40,7 +40,8 @@ dataset = ds.PathDataSet(paths, labels, 0.9)
 gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.8) 
 # Parameters
 learning_rate = 0.001
-training_epochs = 1000
+# training_epochs = 1000
+training_epochs = 1
 batch_size = 20
 display_step = 5
 train_accuracy_step = 2
@@ -61,7 +62,7 @@ y = tf.placeholder(tf.float32, [None, n_classes], name="labels")
 keep_prob = tf.placeholder(tf.float32) #dropout (keep probability)
 
 # Construct model
-weights, biases = cnn.get_variables(n_input, n_classes)
+weights, biases = cnn.get_variables(sample_shape, n_classes)
 # Construct model
 pred = cnn.conv_net(sample_shape[0], sample_shape[1], x, weights, biases, keep_prob)
 
@@ -102,7 +103,7 @@ with tf.Session(config=(tf.ConfigProto())) as sess:
             total_batch = dataset.number_of_batches(batch_size)
             # Loop over batches
             for i in range(total_batch):
-                batch_x, batch_y = dataset.next_batch(batch_size)
+                batch_x, batch_y, batch_paths = dataset.next_batch(batch_size)
                 _, c, accuracy_t = sess.run([optimizer, cost, accuracy], feed_dict={x: batch_x, y: batch_y, keep_prob: dropout})
                 print("Epoch:", '%04d' % (epoch + 1), "Batch:", '%02d' % (i + 1), "/", '%02d' % total_batch,
                       "cost=", "{:.4f}".format(c), "Accuracy train:", accuracy_t)
@@ -138,13 +139,27 @@ with tf.Session(config=(tf.ConfigProto())) as sess:
     else:
         print("Loading tests from", args.test)
         test_paths, test_labels = ds.load_dirs_with_labels(args.test)
-        test_dataset = ds.PathDataSet(test_paths, test_labels, 0)
-        test_xs, test_ys, test_paths  = test_dataset.test_images_and_labels(max=200)
-        accuracy_value, test_cost, sce, pred_v = sess.run([accuracy, cost, softmax_cross_entropy, pred],
-                                                          feed_dict={x: test_xs, y: test_ys, keep_prob: 1.})
-        print("Accuracy test:", accuracy_value, "| Test Cost:", test_cost, "|SCE: ", sce)
-        print("Pred", pred_v, "| Label:", test_ys)
-        print("Paths", test_paths)
+        test_dataset = ds.PathDataSet(test_paths, test_labels, 1)
+        total_batch = test_dataset.number_of_batches(batch_size)
+        avg_cost = 0.
+        avg_accu = 0.
+        for i in range(total_batch):
+            batch_x, batch_y, batch_paths = test_dataset.next_batch(batch_size)
+            accuracy_value, test_cost = sess.run([accuracy, cost], feed_dict={x: batch_x, y: batch_y, keep_prob: 1.})
+            print("Accuracy test batch:", accuracy_value, "| Cost test:", test_cost)
+            avg_accu += accuracy_value / total_batch
+            avg_cost += test_cost / total_batch
+
+        # print("Average accuracy test :", avg_accu, "| Average cost test:", test_cost)
+        #
+        #
+        #
+        # test_xs, test_ys, test_paths  = test_dataset.test_images_and_labels(max=200)
+        # accuracy_value, test_cost, sce, pred_v = sess.run([accuracy, cost, softmax_cross_entropy, pred],
+        #                                                   feed_dict={x: test_xs, y: test_ys, keep_prob: 1.})
+        # print("Accuracy test:", accuracy_value, "| Test Cost:", test_cost, "|SCE: ", sce)
+        # print("Pred", pred_v, "| Label:", test_ys)
+        # print("Paths", test_paths)
 
         # print("Accuracy train:", accuracy.eval({x: trainXs, y: trainYs, keep_prob: 1.}))
         # print("Accuracy test:", accuracy.eval({x: testXs, y: testYs, keep_prob: 1.}))
