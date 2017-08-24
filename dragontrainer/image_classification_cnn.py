@@ -42,7 +42,7 @@ gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.8)
 learning_rate = 0.002
 # training_epochs = 1000
 training_epochs = 50
-batch_size = 30
+batch_size = 80
 display_step = 5
 train_accuracy_step = 2
 test_accuracy_step = 200
@@ -65,10 +65,17 @@ y = tf.placeholder(tf.float32, [None, n_classes], name="labels")
 keep_prob = tf.placeholder(tf.float32) #dropout (keep probability)
 
 # Construct model
+# Conv net with 11 layers
 weights, biases = cnn.get_variables(sample_shape, n_classes)
+# Conv net with 7 layers
+# weights, biases = cnn.get_variables_shallow(sample_shape, n_classes)
+# Conv net for 336 image size
 # weights, biases = cnn.get_variables_22223(sample_shape, n_classes)
-# Construct model
+# Conv net with 11 layers
 logits = cnn.conv_net(sample_shape[0], sample_shape[1], x, weights, biases, keep_prob)
+# Conv net with 7 layers
+# logits = cnn.conv_net_shallow_22222(sample_shape[0], sample_shape[1], x, weights, biases, keep_prob)
+# Conv net for 336 image size
 # logits = cnn.conv_net_22223(sample_shape[0], sample_shape[1], x, weights, biases, keep_prob)
 
 

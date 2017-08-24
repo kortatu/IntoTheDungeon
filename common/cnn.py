@@ -150,6 +150,92 @@ def conv_net_22223(image_x, image_y, x, weights, biases, dropout):
     # return tf.sigmoid(out)
     return out
 
+
+# Create model
+def conv_net_shallow_22222(image_x, image_y, x, weights, biases, dropout):
+    # Reshape input picture
+    x = tf.reshape(x, shape=[-1, image_y, image_x, 3])
+
+    # Convolution Layer
+    conv1 = conv2d(x, weights['wc1'], biases['bc1'])
+    # Convolution Layer
+    conv2 = conv2d(conv1, weights['wc2'], biases['bc2'])
+
+    # Max Pooling (down-sampling)
+    pool1 = maxpool2d(conv2, k=2) # 168 * 168
+
+    conv3 = conv2d(pool1, weights['wc3'], biases['bc3'])
+    # Convolution Layer
+    # Max Pooling (down-sampling)
+    # conv2 = maxpool2d(conv2, k=10)
+
+    pool2 = maxpool2d(conv3, k=2) # 84 * 84
+    conv4 = conv2d(pool2, weights['wc4'], biases['bc4'])
+
+
+    pool3 = maxpool2d(conv4, k=2) # 42 * 42
+
+    conv5 = conv2d(pool3, weights['wc5'], biases['bc5'])
+
+    pool4 = maxpool2d(conv5, k=2) # 21 * 21
+
+    conv6 = conv2d(pool4, weights['wc6'], biases['bc6'])
+
+    pool5 = maxpool2d(conv6, k=2) # 7 * 7
+    conv7 = conv2d(pool5, weights['wc7'], biases['bc7'])
+    # Fully connected layer
+    # Reshape conv7 output to fit fully connected layer input
+    fc1 = tf.reshape(conv7, [-1, weights['wd1'].get_shape().as_list()[0]])
+    fc1 = tf.add(tf.matmul(fc1, weights['wd1']), biases['bd1'])
+    fc1 = tf.nn.relu(fc1)
+    # Apply Dropout
+    fc1 = tf.nn.dropout(fc1, dropout)
+
+    # Output, class prediction
+    out = tf.add(tf.matmul(fc1, weights['out']), biases['out'])
+    # return tf.sigmoid(out)
+    return out
+
+def get_variables_shallow(input_shape, n_classes, maxPoolReduction = 2 ** 5):
+    # Store layers weight & bias
+    first_layer_features = 16
+    second_layer_features = 16
+    third_layer_features = 16
+    fourth_layer_features = 32
+    fifth_layer_features = 64
+    fc_layer_features = 128
+    print("Image shape x,y", input_shape[0], input_shape[1])
+    print("Total Maxpool division", (maxPoolReduction))
+    last_x = input_shape[0] / (maxPoolReduction)
+    last_y = input_shape[1] / (maxPoolReduction)
+    print("Last convolution x,y", last_x, last_y)
+    weights = {
+        'wc1': tf.Variable(tf.random_normal([5, 5, 3, first_layer_features], stddev=0.2)),
+        'wc2': tf.Variable(tf.random_normal([5, 5, first_layer_features, second_layer_features], stddev=0.2)),
+
+        'wc3': tf.Variable(tf.random_normal([5, 5, second_layer_features, third_layer_features], stddev=0.2)),
+        'wc4': tf.Variable(tf.random_normal([5, 5, third_layer_features, fourth_layer_features], stddev=0.2)),
+        'wc5': tf.Variable(tf.random_normal([5, 5, fourth_layer_features, fourth_layer_features], stddev=0.2)),
+        'wc6': tf.Variable(tf.random_normal([5, 5, fourth_layer_features, fourth_layer_features], stddev=0.2)),
+        'wc7': tf.Variable(tf.random_normal([5, 5, fourth_layer_features, fourth_layer_features], stddev=0.2)),
+        'wd1': tf.Variable(tf.random_normal([last_x*last_y * fourth_layer_features, fc_layer_features], stddev=0.2)),
+        'out': tf.Variable(tf.random_normal([fc_layer_features, n_classes], stddev=0.2))
+    }
+
+    biases = {
+        'bc1': tf.Variable(tf.random_normal([first_layer_features], stddev=0.2)),
+        'bc2': tf.Variable(tf.random_normal([second_layer_features], stddev=0.2)),
+        'bc3': tf.Variable(tf.random_normal([third_layer_features], stddev=0.2)),
+        'bc4': tf.Variable(tf.random_normal([fourth_layer_features], stddev=0.2)),
+        'bc5': tf.Variable(tf.random_normal([fourth_layer_features], stddev=0.2)),
+        'bc6': tf.Variable(tf.random_normal([fourth_layer_features], stddev=0.2)),
+        'bc7': tf.Variable(tf.random_normal([fourth_layer_features], stddev=0.2)),
+        'bd1': tf.Variable(tf.random_normal([fc_layer_features], stddev=0.2)),
+        'out': tf.Variable(tf.random_normal([n_classes], stddev=0.2))
+    }
+
+    return weights, biases
+
 # Create some wrappers for simplicity
 def conv2d(x, W, b, strides=1):
     # Conv2D wrapper, with bias and relu activation
