@@ -33,6 +33,8 @@ parser.add_argument('dirs', metavar='dirs', type=str, nargs='+', help='list of d
 parser.add_argument('labels', metavar='l', type=str, help='comma separated labels for each directory associated')
 parser.add_argument('-o', '--output', default='output',
                     help='Output directory where the images will be classified. Default to output in current dir')
+parser.add_argument('-s', '--shape', default=416, # (416 = 12 * 2^5)
+                    help='Shape of the target image (just a value that will be used as height and width)')
 parser.add_argument('--augmentations', '-a', metavar="a", type=str, help="Comma separated augmentations for the "
                                                                          "dataset, like GaussianBlur:0.6,Fliplr:0.5,Sharpen:0.9;0.3 "
                                                                          "... "
@@ -56,6 +58,11 @@ for name, label in zip(dirs, labels):
 # ]
 # labels_dict = {"smoke": 1, "people": 0, "geo": 0}
 print("Label dict", labels_dict)
-ds.organize_dirs_with_labels(dirs, labels_dict, args.output, process_augmentations(args.augmentations))
+# target_shape = (336, 336) #  336 = 2^4 * 3 * 7
+# target_shape = (224, 24) #  224 = 2^5 * 7
+target_shape_as_int = int(args.shape)
+target_shape = (target_shape_as_int, target_shape_as_int)
+print("Target shape will be", target_shape)
+ds.organize_dirs_with_labels(dirs, labels_dict, args.output, target_shape, process_augmentations(args.augmentations))
 
 

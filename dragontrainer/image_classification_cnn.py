@@ -39,13 +39,13 @@ dataset = ds.PathDataSet(paths, labels, 0.9)
 
 gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.8) 
 # Parameters
-learning_rate = 0.001
+learning_rate = 0.002
 # training_epochs = 1000
-training_epochs = 1
-batch_size = 20
+training_epochs = 50
+batch_size = 30
 display_step = 5
 train_accuracy_step = 2
-test_accuracy_step = 2
+test_accuracy_step = 200
 
 # Network Parameters
 # n_input = trainXs.shape[1]    # Images data input (img shape: 180*240)
@@ -53,7 +53,10 @@ an_image = dataset.load_sample_image()
 sample_shape = np.asarray(an_image).shape
 n_input = sample_shape[0]*sample_shape[1]*sample_shape[2]    # Images data input (img shape: h*v*deep)
 print ("Sample shape", sample_shape, "n_input", n_input)
-n_classes = labels.shape[1]  # total classes (1-x categories)
+if len(labels.shape) == 2:
+    n_classes = labels.shape[1]  # total classes (1-x categories)
+else:
+    n_classes = 1
 dropout = 0.7  # Dropout, probability to keep units
 
 # tf Graph input
@@ -63,19 +66,37 @@ keep_prob = tf.placeholder(tf.float32) #dropout (keep probability)
 
 # Construct model
 weights, biases = cnn.get_variables(sample_shape, n_classes)
+# weights, biases = cnn.get_variables_22223(sample_shape, n_classes)
 # Construct model
-pred = cnn.conv_net(sample_shape[0], sample_shape[1], x, weights, biases, keep_prob)
+logits = cnn.conv_net(sample_shape[0], sample_shape[1], x, weights, biases, keep_prob)
+# logits = cnn.conv_net_22223(sample_shape[0], sample_shape[1], x, weights, biases, keep_prob)
 
 
 # Define loss and optimizer
-softmax_cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=pred, labels=y)
-cost = tf.reduce_mean(softmax_cross_entropy, name="mean_entropy")
+if n_classes > 1:
+    cross_entropy = tf.nn.softmax_cross_entropy_with_logits(logits=logits, labels=y)
+    # cost = tf.reduce_mean(softmax_cross_entropy, name="mean_entropy")
+else:
+    cross_entropy = tf.nn.sigmoid_cross_entropy_with_logits(logits=logits, labels=y)
+    # tf_sigmoid = tf.sigmoid(logits)
+    # tf_log = tf.log(tf_sigmoid)
+    # tf_log_1_less = tf.log(tf.add(1.0, tf.negative(tf_sigmoid)))
+    # first_term = tf.multiply(y, tf_log)
+    # second_term = tf.multiply(tf.add(y, -1.0), tf_log_1_less)
+    # lr_loss_tensor = - tf.reduce_mean(tf.add(first_term, second_term))
+
+cost = tf.reduce_mean(cross_entropy, name = "mean_entropy")
 with tf.name_scope("train"):
-    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate).minimize(cost)
+    optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, epsilon=0.1).minimize(cost)
 
 # Evaluate model
-correct_pred = tf.equal(tf.argmax(pred, 1), tf.argmax(y, 1))
-accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
+if n_classes > 1:
+    correct_pred = tf.equal(tf.argmax(logits, 1), tf.argmax(y, 1))
+else:
+    predicted_class = tf.greater(tf.sigmoid(logits), 0.5)
+    correct_pred = tf.equal(predicted_class, tf.equal(y, 1.0))
+
+accuracy = tf.reduce_mean( tf.cast(correct_pred, tf.float32) )
 
 # Initializing the variables
 init = tf.global_variables_initializer()
@@ -107,6 +128,8 @@ with tf.Session(config=(tf.ConfigProto())) as sess:
                 _, c, accuracy_t = sess.run([optimizer, cost, accuracy], feed_dict={x: batch_x, y: batch_y, keep_prob: dropout})
                 print("Epoch:", '%04d' % (epoch + 1), "Batch:", '%02d' % (i + 1), "/", '%02d' % total_batch,
                       "cost=", "{:.4f}".format(c), "Accuracy train:", accuracy_t)
+                # print("Lr_loss", "{:.4f}".format(lr_loss))
+                # print("Y", y_r, "Y_hat", y_hat, "Sigmoid", sigmoid_r, "FT", ft)
                 # s = sess.run(merge_summary, feed_dict={x: batch_x, y: batch_y, keep_prob: 1.})
                 # summary_index = epoch * total_batch + i
                 avg_cost += c / total_batch
