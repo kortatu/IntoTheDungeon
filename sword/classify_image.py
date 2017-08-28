@@ -1,3 +1,4 @@
+
 import sys
 import os
 import numpy as np
@@ -16,55 +17,8 @@ from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
 import cv2
 import time
-import base64
 
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2' #Supress tensorflow compilation warnings
-
-app = Flask(__name__)
-
-app.config['video'] = 'video2.mp4'
-
-# sess = tf.Session()
-# label_lines = [line.rstrip() for line
-#                    in tf.gfile.GFile(base_dir + "/retrained_labels.txt")]
-
-# with tf.gfile.FastGFile( base_dir + "/retrained_graph.pb", 'rb') as f:
-#     graph_def = tf.GraphDef()
-#     graph_def.ParseFromString(f.read())
-#     _ = tf.import_graph_def(graph_def, name='')
-
-
-#Object detection initialize
-CWD_PATH = os.getcwd()
-# Path to frozen detection graph. This is the actual model that is used for the object detection.
-MODEL_NAME = 'first_model'
-PATH_TO_CKPT = os.path.join(CWD_PATH, MODEL_NAME, 'frozen_inference_graph.pb')
-# List of the strings that is used to add correct label for each box.
-PATH_TO_LABELS = os.path.join(CWD_PATH, MODEL_NAME, 'object-detection.pbtxt')
-NUM_CLASSES = 2
-label_map = label_map_util.load_labelmap(PATH_TO_LABELS)
-categories = label_map_util.convert_label_map_to_categories(label_map, max_num_classes=NUM_CLASSES,
-                                                            use_display_name=True)
-category_index = label_map_util.create_category_index(categories)
-detection_graph = tf.Graph()
-with detection_graph.as_default():
-    od_graph_def = tf.GraphDef()
-    with tf.gfile.GFile(PATH_TO_CKPT, 'rb') as fid:
-        serialized_graph = fid.read()
-        od_graph_def.ParseFromString(serialized_graph)
-        tf.import_graph_def(od_graph_def, name='')
-
-    sess = tf.Session(graph=detection_graph)
-    print('Session loaded', sess)
-
-@app.route('/')
-def index():
-    return render_template('index.html', config=app.config)
-
-
-def generate_filepath():
-    unique_filename = str(uuid.uuid4())
-    return base_dir + "/tmp/" + unique_filename + ".jpeg"
 
 
 def classify_image(image_path):
@@ -128,48 +82,28 @@ def classify_image(image_path):
     res.append({"topCategory": "1", "score": "1"})
     return res
 
+#Object detection initialize
+CWD_PATH = os.getcwd()
+# Path to frozen detection graph. This is the actual model that is used for the object detection.
+MODEL_NAME = 'first_model'
+PATH_TO_CKPT = os.path.join(CWD_PATH, MODEL_NAME, 'frozen_inference_graph.pb')
+# List of the strings that is used to add correct label for each box.
+PATH_TO_LABELS = os.path.join(CWD_PATH, MODEL_NAME, 'object-detection.pbtxt')
+NUM_CLASSES = 2
+label_map = label_map_util.load_labelmap(PATH_TO_LABELS)
+categories = label_map_util.convert_label_map_to_categories(label_map, max_num_classes=NUM_CLASSES,
+                                                            use_display_name=True)
+category_index = label_map_util.create_category_index(categories)
+detection_graph = tf.Graph()
+with detection_graph.as_default():
+    od_graph_def = tf.GraphDef()
+    with tf.gfile.GFile(PATH_TO_CKPT, 'rb') as fid:
+        serialized_graph = fid.read()
+        od_graph_def.ParseFromString(serialized_graph)
+        tf.import_graph_def(od_graph_def, name='')
 
-@app.route("/api/v1/classify", methods=['POST'])
-def classify():
-    data = request.get_json()
+    sess = tf.Session(graph=detection_graph)
+    print('Session loaded', sess)
 
-    if data is None or data.get('imgBase64') is None:
-        print("No data from image!")
-        return ""
-
-    filepath = generate_filepath()
-
-    with open(filepath, "wb") as fh:
-        imgData = data.get('imgBase64')
-        #print("base64data", imgData)
-        missing_padding = len(imgData) % 4
-        if missing_padding != 0:
-            print("missing_padding")
-            imgData += b'='* (4 - missing_padding)
-        print(type(imgData)) 
-        fh.write(base64.b64decode(imgData))
-        #fh.write(imgData.decode('base64'))
-
-    #result = classify_image(filepath)
-
-    #os.remove(filepath)
-    #return jsonify(result[0])
-    return jsonify("ok");
-
-
-@app.route('/static/css/<path:path>')
-def send_css(path):
-    return send_from_directory('static/css', path)
-
-
-@app.route('/static/js/<path:path>')
-def send_js(path):
-    return send_from_directory('static/js', path)
-
-
-@app.route('/static/videos/<path:path>')
-def send_video(path):
-    return send_from_directory('static/video', path)
-
-if __name__ == "__main__":
-    app.run(host='0.0.0.0', port=6006, threaded=True)
+print("Arg" , sys.argv[1])
+classify_image(sys.argv[1])
