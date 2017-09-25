@@ -39,19 +39,19 @@ def get_variables(input_shape, n_classes, maxPoolReduction = 2 ** 5):
     }
 
     biases = {
-        'bc1': tf.Variable(tf.random_normal([first_layer_features], stddev=0.2)),
-        'bc2': tf.Variable(tf.random_normal([second_layer_features], stddev=0.2)),
-        'bc3': tf.Variable(tf.random_normal([third_layer_features], stddev=0.2)),
-        'bc4': tf.Variable(tf.random_normal([fourth_layer_features], stddev=0.2)),
-        'bc5': tf.Variable(tf.random_normal([fourth_layer_features], stddev=0.2)),
-        'bc6': tf.Variable(tf.random_normal([fourth_layer_features], stddev=0.2)),
-        'bc7': tf.Variable(tf.random_normal([fourth_layer_features], stddev=0.2)),
-        'bc8': tf.Variable(tf.random_normal([fourth_layer_features], stddev=0.2)),
-        'bc9': tf.Variable(tf.random_normal([fourth_layer_features], stddev=0.2)),
-        'bc10': tf.Variable(tf.random_normal([fourth_layer_features], stddev=0.2)),
-        'bc11': tf.Variable(tf.random_normal([fourth_layer_features], stddev=0.2)),
-        'bd1': tf.Variable(tf.random_normal([fc_layer_features], stddev=0.2)),
-        'out': tf.Variable(tf.random_normal([n_classes], stddev=0.2))
+        'bc1': tf.Variable(tf.random_normal([first_layer_features], stddev=0.1)),
+        'bc2': tf.Variable(tf.random_normal([second_layer_features], stddev=0.1)),
+        'bc3': tf.Variable(tf.random_normal([third_layer_features], stddev=0.1)),
+        'bc4': tf.Variable(tf.random_normal([fourth_layer_features], stddev=0.1)),
+        'bc5': tf.Variable(tf.random_normal([fourth_layer_features], stddev=0.1)),
+        'bc6': tf.Variable(tf.random_normal([fourth_layer_features], stddev=0.1)),
+        'bc7': tf.Variable(tf.random_normal([fourth_layer_features], stddev=0.1)),
+        'bc8': tf.Variable(tf.random_normal([fourth_layer_features], stddev=0.1)),
+        'bc9': tf.Variable(tf.random_normal([fourth_layer_features], stddev=0.1)),
+        'bc10': tf.Variable(tf.random_normal([fourth_layer_features], stddev=0.1)),
+        'bc11': tf.Variable(tf.random_normal([fourth_layer_features], stddev=0.1)),
+        'bd1': tf.Variable(tf.random_normal([fc_layer_features], stddev=0.1)),
+        'out': tf.Variable(tf.random_normal([n_classes], stddev=0.1))
     }
 
     return weights, biases

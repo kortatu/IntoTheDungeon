@@ -1,1 +1,3 @@
 while [ true ]; do python3 object_detection/train.py --logtostderr --pipeline_config_path=object_detection/training/faster_rcnn_inception_resnet_v2_atrous_pets.config --train_dir=object_detection/first_training; sleep 3; done
+
+python3  object_detection/export_inference_graph.py --input_type image_tensor    --pipeline_config_path object_detection/training/faster_rcnn_inception_resnet_v2_atrous_pets.config    --output_directory /tmp/lolo2     --trained_checkpoint_prefix object_detection/first_training/model.ckpt-1991

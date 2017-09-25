@@ -163,7 +163,11 @@ class PathDataSet(object):
     def load_images(self, paths):
         images = []
         for path in paths:
-            images.append(misc.imread(path))
+            try:
+                images.append(misc.imread(path))
+            except IOError:
+                print("Can't read image " , path)
+
         images = np.asarray(images, dtype=np.float32)
         # print("Image paths shape", images.shape)
         images = np.reshape(images, [images.shape[0], -1])
