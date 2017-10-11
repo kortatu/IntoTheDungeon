@@ -188,15 +188,17 @@ class PathDataSet(object):
         return self._test_images[:max], self._test_labels[:max], self._test_paths[:max]
 
 
-def organize_dirs_with_labels(dir_names, labels_dict, output, augmentations = None):
+def organize_dirs_with_labels(dir_names, labels_dict, output, augmentations = None, boxes = False):
     """Load images and labels of all directories in dir_name. The label
     of each subdirectory will be queried in labels_dict.
     :param dir_names: directory names to scan
     :param labels_dict: dictionary with directory_names to label (could contain several names to the same label)
     :param output directory where the images will be classified. There subdirectories will be created by each label
     :param augmentations Optional parameter to augment the images
+    :param boxes Optional parameter to tell the method we have xml with bounding boxes
     :return: a list of images and a corespondent list of labels for each image
     """
+    print(boxes)
     images = []
     labels = []
     for dirname in dir_names:
@@ -204,20 +206,27 @@ def organize_dirs_with_labels(dir_names, labels_dict, output, augmentations = No
         print("Dirname key", dirname)
         label = labels_dict[dirname_key]
         print("Label for dirname", dirname_key, "is", label)
-        file_names = os.listdir(dirname)
+        file_names = [file for file in os.listdir(dirname) if file.endswith('.png') or file.endswith('.jpg')]
         for file_name in file_names:
             print("File", file_name, "in dir", dirname)
-            train_image = load_train_image(dirname, file_name, images, label, labels, True)
+            train_image = load_train_image(dirname, file_name, images, label, labels, boxes is False)
             if augmentations:
-                train_image = augment_image( train_image, augmentations )
+                original_file_name = file_name
+                train_image = augment_image( train_image, augmentations, boxes )
                 for augmentation in augmentations:
                     file_name = file_name.replace('.', augmentation.name + '.')
+                if boxes:
+                    generate_new_box_xml(original_file_name, file_name, dirname, output + "/" + str(label))
+
             if train_image is not None:
                 save_to_label_folder(output, file_name, label, train_image)
 
-    images = np.asarray(images, dtype=np.float32)
-    labels = np.asarray(labels)
-    print("Images shape", images.shape)
+    if boxes:
+        print("Finished process")
+    else:
+        images = np.asarray(images, dtype=np.float32)
+        labels = np.asarray(labels)
+        print("Images shape", images.shape)
 
 
 def load_dirs_with_labels(dir_name):
@@ -307,6 +316,10 @@ def reshape_if_needed(correct_shape, reshape, shape, target_shape, train_image):
     if not correct_shape and reshape:
         train_image = reshape_image_adding_bars(train_image, shape, target_shape)
         correct_shape = True
+
+    if reshape is False:
+        correct_shape = True
+
     return correct_shape, train_image
 
 
@@ -481,9 +494,26 @@ def create_data_sets(file_name):
     return train_xs, train_ys, test_xs, test_ys
 
 
-def augment_image( image, augmentations ):
+def augment_image( image, augmentations, boxes ):
     if image is not None:
         for augmenter in augmentations:
-            image = augmenter.augment_image( image )
-
+            if boxes and augmenter.name == "UnnamedFliplr":
+                print("Skipping fliplr augmentation")
+            else:
+                image = augmenter.augment_image( image )
     return image
+
+
+def generate_new_box_xml(old_file_name, new_file_name, dirname, output):
+    """ At the moment we just replace the name inside the XML file and copy it, we could support flip in the future """
+    print("Generating new box xml")
+    try:
+        old_xml_file = os.path.join(dirname, os.path.splitext(old_file_name)[0] + ".xml")
+        new_xml_file = os.path.join(output, os.path.splitext(new_file_name)[0] + ".xml")
+        with open(old_xml_file, 'r') as myfile:
+            data = myfile.read().replace(old_file_name, new_file_name)
+            with open(new_xml_file, "w") as new_file:
+                new_file.write(data)
+    except IOError:
+        print("Error reading xml file")
+        return
