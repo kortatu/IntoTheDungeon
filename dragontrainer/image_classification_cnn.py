@@ -94,12 +94,13 @@ cost = tf.reduce_mean(cross_entropy, name = "mean_entropy")
 with tf.name_scope("train"):
     optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, epsilon=0.1).minimize(cost)
 
-threshold = 0.51
+threshold = 0.75
 # Evaluate model
 if n_classes > 1:
     correct_pred = tf.equal(tf.argmax(logits, 1), tf.argmax(y, 1))
 else:
-    predicted_class = tf.greater(tf.sigmoid(logits), threshold)
+    sigmoid = tf.sigmoid(logits)
+    predicted_class = tf.greater(sigmoid, threshold)
     correct_pred = tf.equal(predicted_class, tf.equal(y, 1.0))
 
 accuracy = tf.reduce_mean( tf.cast(correct_pred, tf.float32) )
@@ -119,9 +120,9 @@ def accuracy_test(test_paths, test_labels):
     test_avg_accu = 0.
     for i in range(total_batch):
         batch_x, batch_y, batch_paths = test_dataset.next_batch(batch_size)
-        accuracy_value, test_cost, test_logits = sess.run([accuracy, cost, logits], feed_dict={x: batch_x, y: batch_y, keep_prob: 1.})
+        accuracy_value, test_cost, test_sigmoid = sess.run([accuracy, cost, sigmoid], feed_dict={x: batch_x, y: batch_y, keep_prob: 1.})
         if batch_size == 1:
-            print("Accuracy test batch:", accuracy_value, "| Cost test:", test_cost, "| Labels: ", batch_y, "| Logits:", test_logits, )
+            print("Accuracy test batch:", accuracy_value, "| Cost test:", test_cost, "| Labels: ", batch_y, "| Sigmoid:", test_sigmoid, )
         else:
             print("Accuracy test batch:", accuracy_value, "| Cost test:", test_cost)            
         test_avg_accu += accuracy_value / total_batch
