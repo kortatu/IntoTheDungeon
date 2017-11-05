@@ -163,7 +163,11 @@ class PathDataSet(object):
     def load_images(self, paths):
         images = []
         for path in paths:
-            images.append(misc.imread(path))
+            try:
+                images.append(misc.imread(path))
+            except IOError:
+                print("Can't read image " , path)
+
         images = np.asarray(images, dtype=np.float32)
         # print("Image paths shape", images.shape)
         images = np.reshape(images, [images.shape[0], -1])
@@ -195,7 +199,7 @@ class PathDataSet(object):
         return self._test_images[:max], self._test_labels[:max], self._test_paths[:max]
 
 
-def organize_dirs_with_labels(dir_names, labels_dict, output, augmentations = None):
+def organize_dirs_with_labels(dir_names, labels_dict, output, target_shape, augmentations = None):
     """Load images and labels of all directories in dir_name. The label
     of each subdirectory will be queried in labels_dict.
     :param dir_names: directory names to scan
@@ -214,7 +218,7 @@ def organize_dirs_with_labels(dir_names, labels_dict, output, augmentations = No
         file_names = os.listdir(dirname)
         for file_name in file_names:
             print("File", file_name, "in dir", dirname)
-            train_image = load_train_image(dirname, file_name, images, label, labels, True)
+            train_image = load_train_image(dirname, file_name, images, label, labels, target_shape, True )
             if augmentations:
                 train_image = augment_image( train_image, augmentations )
                 for augmentation in augmentations:
@@ -248,8 +252,11 @@ def load_dirs_with_labels(dir_name):
 
     paths = np.asarray(paths, dtype=str)
     labels = np.asarray(labels)
-    labels = np.reshape(labels, labels.shape[0])
-    labels = np.eye(len(categories_in_this_dataset))[labels]
+    if len(categories_in_this_dataset) > 2:
+        labels = np.reshape(labels, labels.shape[0])
+        labels = np.eye(len(categories_in_this_dataset))[labels]
+    else:
+        labels = np.reshape(labels, [labels.shape[0], 1])
     print("Labels shape", labels.shape)
     return paths, labels
 
@@ -281,7 +288,7 @@ def load_dirs(dir_name):
     return images, labels
 
 
-def load_train_image(dirname, filename, images, label, labels, reshape=False):
+def load_train_image(dirname, filename, images, label, labels, target_shape, reshape=False):
     if filename.endswith("jpeg") or filename.endswith("jpg"):
         full_file_name = os.path.join(dirname, filename)
         try:
@@ -292,7 +299,6 @@ def load_train_image(dirname, filename, images, label, labels, reshape=False):
         shape = np.asarray(train_image).shape
         if len(shape) >= 1:
             shape, train_image = normalize_dimensions(shape, train_image)
-            target_shape = (416, 416)  # (416 = 12 * 2^5)
             correct_shape = shape[0] == target_shape[0] and shape[1] == target_shape[1]
             correct_shape, train_image = reshape_if_needed(correct_shape, reshape, shape, target_shape, train_image)
             if correct_shape:
@@ -420,7 +426,7 @@ def reshape_image_adding_bars(raw, shape, target_shape=(180, 240)):
 
     shape = np.asarray(raw).shape
     ratio_upd = shape[0] / float(shape[1])
-    # print("Shape/Ratio after adding bars: ", shape, ratio_upd)
+    print("Before resizing to : ", target_shape)
     im_resize = misc.imresize(raw, target_shape)
     shape = np.asarray(im_resize).shape
     ratio_upd = shape[0] / float(shape[1])
@@ -467,7 +473,7 @@ def create_data_sets(file_name):
     print("Shape of ALLY", all_y.shape)
     all_y = np.reshape(all_y, all_y.shape[0])
     all_y_0_based = all_y - 1
-    y_labs = np.eye(len(categories))[all_y_0_based]  # Convert a list of num 0..6 to a list of hot position array [0 0 0 1 0 0 0]
+    y_labs = np.eye(len(categories))[all_y_0_based]  # Convert a list of num 0..CLASSeS to a list of hot position array [0 0 0 1 .. 0 0 0]
     total_samples = all_y.shape[0]
 
     print("First value NOT shuffled", y_labs[0])
