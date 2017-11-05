@@ -94,7 +94,7 @@ class PathDataSet(object):
     def __init__(self,
                  paths,
                  labels,
-                 train_percentage,
+                 train_percentage = 1.0,
                  dtype=dtypes.float32):
         """Construct a DataSet.
         `dtype` can be either `uint8` to leave the input as `[0, 255]`, or `float32` to rescale into
@@ -199,7 +199,8 @@ class PathDataSet(object):
         return self._test_images[:max], self._test_labels[:max], self._test_paths[:max]
 
 
-def organize_dirs_with_labels(dir_names, labels_dict, output, target_shape, augmentations = None):
+def organize_dirs_with_labels(dir_names, labels_dict, output,
+                              target_shape, augmentations = None, training_ratio = 0.8):
     """Load images and labels of all directories in dir_name. The label
     of each subdirectory will be queried in labels_dict.
     :param dir_names: directory names to scan
@@ -223,8 +224,11 @@ def organize_dirs_with_labels(dir_names, labels_dict, output, target_shape, augm
                 train_image = augment_image( train_image, augmentations )
                 for augmentation in augmentations:
                     file_name = file_name.replace('.', augmentation.name + '.')
+            is_training = np.random.random() < training_ratio
+            sub_output = "training" if is_training else "test"
+            actual_output = output + "/" + sub_output
             if train_image is not None:
-                save_to_label_folder(output, file_name, label, train_image)
+                save_to_label_folder(actual_output, file_name, label, train_image)
 
     images = np.asarray(images, dtype=np.float32)
     labels = np.asarray(labels)

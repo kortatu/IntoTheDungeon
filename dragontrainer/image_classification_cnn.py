@@ -27,11 +27,13 @@ parser.add_argument('-c', '--cost', default=None,
 args = parser.parse_args()
 print("Args", args)
 
-paths, labels = ds.load_dirs_with_labels("smoke_images")
+paths, labels = ds.load_dirs_with_labels("smoke_images/training")
+test_paths, test_labels = ds.load_dirs_with_labels("smoke_images/test")
 # load_dirs(base_dir + "/trainImages")
 # trainXs, trainYs, testXs, testYs = ds.shuffle_and_slice(paths, labels)
 
-dataset = ds.PathDataSet(paths, labels, 1.0)
+dataset = ds.PathDataSet(paths, labels)
+test_dataset = ds.PathDataSet(test_paths, test_labels)
 
 # test_xs, test_ys = dataset.test_images_and_labels(max=100)
 # print("test_ys", test_ys)
@@ -45,8 +47,8 @@ training_epochs = 500
 batch_size = 80
 #batch_size = 1
 display_step = 5
-train_accuracy_step = 2
-test_accuracy_step = 200
+train_accuracy_step = 1
+test_accuracy_step = 1
 
 # Network Parameters
 # n_input = trainXs.shape[1]    # Images data input (img shape: 180*240)
@@ -76,7 +78,7 @@ get_variables = cnn.get_variables_shallow
 weights, biases = get_variables(sample_shape, n_classes)
 # Conv net with 11 layers
 #cnn.conv_net
-# Conv net with 7 layers
+# Conv net with 7 layers size 224
 #cnn.conv_net_shallow_22222(sample_shape[0], sample_shape[1], x, weights, biases, keep_prob)
 # Conv net for 336 image size
 #cnn.conv_net_22223(sample_shape[0], sample_shape[1], x, weights, biases, keep_prob)
@@ -130,6 +132,19 @@ def accuracy_test(test_paths, test_labels):
     print("Average accuracy test :", test_avg_accu, "| Average cost test:", test_avg_cost)
 
 
+def accuracy_test_step(test_dataset, epoch):
+    test_total_batch = test_dataset.number_of_batches(batch_size)
+    test_avg_cost = 0.
+    test_avg_accu = 0.
+    for i in range(test_total_batch):
+        test_batch_x, test_batch_y, _ = test_dataset.next_batch(batch_size)
+        accuracy_value, test_cost = sess.run([accuracy, cost], feed_dict={x: test_batch_x, y: test_batch_y, keep_prob: 1.})
+        test_avg_accu += accuracy_value / test_total_batch
+        test_avg_cost += test_cost / test_total_batch
+    print("Epoch:", '%04d' % (epoch + 1), "Accuracy test:", "{:.9f}".format(test_avg_accu),
+          "| Cost test:", "{:.9f}".format(test_avg_cost))
+
+
 with tf.Session(config=(tf.ConfigProto())) as sess:
     sess.run(init)
     if args.restart is None:
@@ -151,8 +166,9 @@ with tf.Session(config=(tf.ConfigProto())) as sess:
             for i in range(total_batch):
                 batch_x, batch_y, batch_paths = dataset.next_batch(batch_size)
                 _, c, accuracy_t = sess.run([optimizer, cost, accuracy], feed_dict={x: batch_x, y: batch_y, keep_prob: dropout})
-                print("Epoch:", '%04d' % (epoch + 1), "Batch:", '%02d' % (i + 1), "/", '%02d' % total_batch,
-                      "cost=", "{:.4f}".format(c), "Accuracy train:", accuracy_t)
+                # print("Epoch:", '%04d' % (epoch + 1), "Batch:", '%02d' % (i + 1), "/", '%02d' % total_batch,
+                #       "cost=", "{:.4f}".format(c), "Accuracy train:", accuracy_t)
+
                 # print("Lr_loss", "{:.4f}".format(lr_loss))
                 # print("Y", y_r, "Y_hat", y_hat, "Sigmoid", sigmoid_r, "FT", ft)
                 # s = sess.run(merge_summary, feed_dict={x: batch_x, y: batch_y, keep_prob: 1.})
@@ -160,8 +176,10 @@ with tf.Session(config=(tf.ConfigProto())) as sess:
                 avg_cost += c / total_batch
                 avg_accu += accuracy_t / total_batch
 
-            print("Epoch:", '%04d' % (epoch + 1), "Average cost=", "{:.9f}".format(avg_cost))
-            print("Epoch:", '%04d' % (epoch + 1), "Average accu=", "{:.9f}".format(avg_accu))
+            print("Epoch:", '%04d' % (epoch + 1), "Accuracy training:", "{:.9f}".format(avg_accu),
+                  "| Cost training:", "{:.9f}".format(avg_cost))
+            # print("Epoch:", '%04d' % (epoch + 1), "Average cost=", "{:.9f}".format(avg_cost))
+            # print("Epoch:", '%04d' % (epoch + 1), "Average accu=", "{:.9f}".format(avg_accu))
 
             if best_cost is None or best_cost > avg_cost:
                 print("Best cost updated!")
@@ -171,10 +189,12 @@ with tf.Session(config=(tf.ConfigProto())) as sess:
                 print("Previous best cost", best_cost, "was better, not updating")
 
             if (epoch + 1) % test_accuracy_step == 0:
-                test_xs, test_ys, _  = dataset.test_images_and_labels(max=20)
-                accuracy_value, test_cost = sess.run([accuracy, cost],
-                                                     feed_dict={x: test_xs, y: test_ys, keep_prob: 1.})
-                print("Epoch:", '%04d' % (epoch + 1), "Accuracy test:", accuracy_value, "| Test Cost:", test_cost)
+                accuracy_test_step(test_dataset, epoch)
+                # test_xs, test_ys, _  = dataset.test_images_and_labels(max=20)
+                # accuracy_value, test_cost = sess.run([accuracy, cost],
+                #                                      feed_dict={x: test_xs, y: test_ys, keep_prob: 1.})
+                # print("Epoch:", '%04d' % (epoch + 1), "Accuracy test:", accuracy_value, "| Test Cost:", test_cost)
+            print()
 
         save_path = saver.save(sess, model_path)
         print("Model saved in file: %s" % save_path)

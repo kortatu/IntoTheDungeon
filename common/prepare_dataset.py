@@ -6,10 +6,11 @@ base_dir = real_path[:real_path.rfind("/")]
 import dataset as ds
 from imgaug import augmenters as iaa
 
-def process_augmentations( augmentationString ):
-    processedAugmentations = []
-    if augmentationString:
-        augmentations = augmentationString.split(',')
+
+def process_augmentations(augmentation_string):
+    processed_augmentations = []
+    if augmentation_string:
+        augmentations = augmentation_string.split(',')
         for augmentation in augmentations:
             method, values = augmentation.split(":")
 
@@ -24,9 +25,10 @@ def process_augmentations( augmentationString ):
 
             print("Got augmenter:")
             print(augmenter)
-            processedAugmentations.append(augmenter)
+            processed_augmentations.append(augmenter)
 
-    return processedAugmentations
+    return processed_augmentations
+
 
 parser = argparse.ArgumentParser(description="Prepare image dataset resinzing and organizing by label")
 parser.add_argument('dirs', metavar='dirs', type=str, nargs='+', help='list of directories with images')
@@ -40,6 +42,9 @@ parser.add_argument('--augmentations', '-a', metavar="a", type=str, help="Comma 
                                                                          "... "
                                                                          "To see the list of parameters, check "
                                                                          "https://github.com/aleju/imgaug")
+parser.add_argument('-r', '--ratio', default=0.8, # (416 = 12 * 2^5)
+                    help='Ratio of images in training folder. 1.0 will leave test folder empty')
+
 
 # python prepare_dataset.py /Users/alvaroescarcha/Desktop/tshirt/tshirts 0 -o /Users/alvaroescarcha/Desktop/tshirt_aug10 --augmentations "Sharpen:0.9;0.3,GaussianBlur:1.6,Fliplr:0.5"
 
@@ -63,6 +68,9 @@ print("Label dict", labels_dict)
 target_shape_as_int = int(args.shape)
 target_shape = (target_shape_as_int, target_shape_as_int)
 print("Target shape will be", target_shape)
-ds.organize_dirs_with_labels(dirs, labels_dict, args.output, target_shape, process_augmentations(args.augmentations))
+training_ratio = float(args.ratio)
+print("Ratio of images in training", training_ratio)
+ds.organize_dirs_with_labels(dirs, labels_dict, args.output,
+                             target_shape, process_augmentations(args.augmentations), training_ratio)
 
 
