@@ -27,8 +27,12 @@ parser.add_argument('-c', '--cost', default=None,
 args = parser.parse_args()
 print("Args", args)
 
-paths, labels = ds.load_dirs_with_labels("smoke_images/training")
-test_paths, test_labels = ds.load_dirs_with_labels("smoke_images/test")
+if args.test is None:
+    paths, labels = ds.load_dirs_with_labels("smoke_images/training")
+    test_paths, test_labels = ds.load_dirs_with_labels("smoke_images/test")
+else:
+    paths, labels = ds.load_dirs_with_labels(args.test)
+    test_paths, test_labels = paths, labels
 # load_dirs(base_dir + "/trainImages")
 # trainXs, trainYs, testXs, testYs = ds.shuffle_and_slice(paths, labels)
 
@@ -44,7 +48,8 @@ gpu_options = tf.GPUOptions(per_process_gpu_memory_fraction=0.8)
 learning_rate = 0.003
 # training_epochs = 1000
 training_epochs = 500
-batch_size = 80
+#batch_size = 80
+batch_size = 50
 #batch_size = 1
 display_step = 5
 train_accuracy_step = 1
@@ -115,8 +120,7 @@ saver = tf.train.Saver()
 model_path = base_dir + "/latest/epicmodelcnn.ckpt"
 
 
-def accuracy_test(test_paths, test_labels):
-    test_dataset = ds.PathDataSet(test_paths, test_labels, 1)
+def accuracy_test(test_dataset):
     total_batch = test_dataset.number_of_batches(batch_size)
     test_avg_cost = 0.
     test_avg_accu = 0.
@@ -201,8 +205,7 @@ with tf.Session(config=(tf.ConfigProto())) as sess:
 
     else:
         print("Loading tests from", args.test)
-        test_paths, test_labels = ds.load_dirs_with_labels(args.test)
-        accuracy_test(test_paths, test_labels)
+        accuracy_test(dataset)
         #
         #
         #
