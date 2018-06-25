@@ -43,7 +43,7 @@ while True:
             for index, val in enumerate(distances):
                 if(val <= 0.6 and val < maxScore):
                     maxScore = val
-                    name = names[index]
+                    name = names[index] + " " + "{0:.2f}".format(val)
 
             face_names.append(name)
 
